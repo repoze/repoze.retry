@@ -1,0 +1,14 @@
+0.2
+
+ The entry point name was wrong (it referred to "tm").  Change it so
+ that egg:repoze.retry#retry should work in paste configs.
+
+ Depend on zopelib rather than ZODB 3.8.0b3 distribution, because the
+ ZODB distribution pulls in various packages (zope.interface and ZEO
+ most notably) that are incompatible with stock Zope 2.10.4 apps and
+ older sandboxes.  We'll need to revisit this.
+
+
+0.1
+
+  Initial release
