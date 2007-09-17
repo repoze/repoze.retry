@@ -1,1 +1,3 @@
-repoze.retry.egg-info
+*.egg-info
+*.egg
+dist

@@ -1,3 +1,12 @@
+0.3
+
+ We now buffer the result of a downstream application's
+ 'start_response' call so we can retry requests which have already
+ called start_response without breaking the WSGI spec (the server's
+ start_response may only be called once unless there is an exception,
+ and then it needs to be called with an exc_info three-tuple, although
+ we're uninterested in that case here).
+
 0.2
 
  The entry point name was wrong (it referred to "tm").  Change it so
