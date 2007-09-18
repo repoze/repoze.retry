@@ -1,4 +1,5 @@
 # repoze retry-on-conflict-error behavior
+import traceback
 from ZODB.POSException import ConflictError
 
 class Retry:
@@ -23,7 +24,11 @@ class Retry:
         while 1:
             try:
                 result = self.application(environ, self.buffer_start_response)
-            except ConflictError:
+            except ConflictError, why:
+                if environ.get('wsgi.errors'):
+                    errors = environ['wsgi.errors']
+                    errors.write('repoze.retry retrying a conflict error:\n')
+                    traceback.print_exc(environ['wsgi.errors'])
                 i += 1
                 if i < self.tries:
                     continue

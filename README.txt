@@ -1,2 +1,3 @@
-Middleware which intercepts a ZODB conflict error and retries the request a
-configurable number of times.
+WSGI Middleware which intercepts a ZODB conflict error and retries the
+WSGI request a configurable number of times.
+
