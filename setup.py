@@ -1,4 +1,4 @@
-__version__ = '0.4'
+__version__ = '0.5'
 
 import os
 from setuptools import setup, find_packages
@@ -21,14 +21,13 @@ setup(name='repoze.retry',
       keywords='web application server wsgi zope',
       author="Agendaless Consulting",
       author_email="repoze-dev@lists.repoze.org",
-      dependency_links=['http://dist.repoze.org'],
       url="http://www.repoze.org",
       license="BSD-derived (http://www.repoze.org/LICENSE.txt)",
       packages=find_packages(),
       include_package_data=True,
       namespace_packages=['repoze'],
       zip_safe=False,
-      install_requires=['ZODB3 >= 3.7.1'],
+      install_requires=['ZODB3 >= 3.7.2, < 3.8.0a'],
       test_suite = "repoze.retry.tests",
       entry_points="""
       [paste.filter_app_factory]
