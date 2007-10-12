@@ -1,4 +1,4 @@
-__version__ = '0.5'
+__version__ = '0.6'
 
 import os
 from setuptools import setup, find_packages
@@ -27,7 +27,7 @@ setup(name='repoze.retry',
       include_package_data=True,
       namespace_packages=['repoze'],
       zip_safe=False,
-      install_requires=['ZODB3 >= 3.7.2, < 3.8.0a'],
+      install_requires=['ZODB3'],
       test_suite = "repoze.retry.tests",
       entry_points="""
       [paste.filter_app_factory]

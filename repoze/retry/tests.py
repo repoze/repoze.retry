@@ -16,7 +16,7 @@ class TestRetry(unittest.TestCase):
         from ZODB.POSException import ConflictError
         application = DummyApplication(conflicts=1)
         retry = self._makeOne(application, tries=4)
-        result = retry(None, None)
+        result = retry({}, None)
         self.assertEqual(result, ['hello'])
         self.assertEqual(application.called, 1)
 
@@ -24,7 +24,7 @@ class TestRetry(unittest.TestCase):
         from ZODB.POSException import ConflictError
         application = DummyApplication(conflicts=5)
         retry = self._makeOne(application, tries=4)
-        self.failUnlessRaises(ConflictError, retry, None, None)
+        self.failUnlessRaises(ConflictError, retry, {}, None)
         self.assertEqual(application.called, 4)
 
     def _dummy_start_response(self, *arg):
@@ -34,7 +34,7 @@ class TestRetry(unittest.TestCase):
         from ZODB.POSException import ConflictError
         application = DummyApplication(conflicts=5, call_start_response=True)
         retry = self._makeOne(application, tries=4)
-        self.failUnlessRaises(ConflictError, retry, None,
+        self.failUnlessRaises(ConflictError, retry, {},
                               self._dummy_start_response)
         self.assertEqual(application.called, 4)
         self.assertEqual(self._dummy_start_response_result, ('200 OK', {}))
@@ -43,7 +43,7 @@ class TestRetry(unittest.TestCase):
         from ZODB.POSException import ConflictError
         application = DummyApplication(conflicts=1, call_start_response=True)
         retry = self._makeOne(application, tries=4)
-        result = retry(None, self._dummy_start_response)
+        result = retry({}, self._dummy_start_response)
         self.assertEqual(application.called, 1)
         self.assertEqual(self._dummy_start_response_result, ('200 OK', {}))
         self.assertEqual(result, ['hello'])

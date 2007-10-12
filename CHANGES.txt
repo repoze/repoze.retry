@@ -1,3 +1,8 @@
+0.6
+
+ Relaxed requirement for ZODB 3.7.2, since we might need to use
+ the package with other verions.
+
 0.5
 
  Depend on PyPI release of ZODB 3.7.2.  Upgrade to this by doing
