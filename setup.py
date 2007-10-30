@@ -1,4 +1,4 @@
-__version__ = '0.6'
+__version__ = '0.7'
 
 import os
 from setuptools import setup, find_packages
@@ -8,7 +8,7 @@ README = open(os.path.join(here, 'README.txt')).read()
 
 setup(name='repoze.retry',
       version=__version__,
-      description='Middleware which implements a retry on conflict behavior',
+      description='Middleware which implements a retryable exceptions',
       long_description=README,
       classifiers=[
         "Development Status :: 3 - Alpha",
@@ -27,7 +27,7 @@ setup(name='repoze.retry',
       include_package_data=True,
       namespace_packages=['repoze'],
       zip_safe=False,
-      install_requires=['ZODB3'],
+      install_requires=[],
       test_suite = "repoze.retry.tests",
       entry_points="""
       [paste.filter_app_factory]

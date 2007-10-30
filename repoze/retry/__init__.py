@@ -1,17 +1,34 @@
 # repoze retry-on-conflict-error behavior
 import traceback
-from ZODB.POSException import ConflictError
 
 class Retry:
-    def __init__(self, application, tries):
+    def __init__(self, application, tries, retryable=None):
+        """ WSGI Middlware which retries a configurable set of exception types.
+
+        o 'application' is the RHS in the WSGI "pipeline".
+
+        o 'retries' is the maximun number of times to retry a request.
+
+        o 'retryable' is a sequence of one or more exception types which,
+          if raised, indicate that the request should be retried.
+        """
         self.application = application
         self.tries = tries
         self.start_response_result = None
 
+        if retryable is None:
+            from ZODB.POSException import ConflictError
+            retryable = ConflictError
+
+        if not isinstance(retryable, (list, tuple)):
+            retryable = [retryable]
+
+        self.retryable = tuple(retryable)
+
     def buffer_start_response(self, *arg, **kw):
         # we can't successfully retry if a downstream application has already
         # called start_response, so we buffer the result and call the
-        # original start_response if we don't 
+        # original start_response if we don't
         self.start_response_result = (arg, kw)
 
     def call_start_response(self, start_response):
@@ -24,7 +41,7 @@ class Retry:
         while 1:
             try:
                 result = self.application(environ, self.buffer_start_response)
-            except ConflictError, why:
+            except self.retryable:
                 if environ.get('wsgi.errors'):
                     errors = environ['wsgi.errors']
                     errors.write('repoze.retry retrying a conflict error:\n')
@@ -37,8 +54,13 @@ class Retry:
             else:
                 self.call_start_response(start_response)
                 return result
-                
-                
-def make_retry(app, global_conf):
-    tries = int(global_conf.get('tries', 3))
-    return Retry(app, tries)
+
+
+def make_retry(app, global_conf, **local_conf):
+    from pkg_resources import EntryPoint
+    tries = int(local_conf.get('tries', 3))
+    retryable = local_conf.get('retryable')
+    if retryable is not None:
+        retryable = [EntryPoint.parse('x=%s' % x).load(False)
+                      for x in retryable.split(' ')]
+    return Retry(app, tries, retryable=retryable)

@@ -1,3 +1,8 @@
+0.7
+
+ Made the retryable exception(s) configurable, removing the hardwired
+ dependency on ZODB3.
+
 0.6
 
  Relaxed requirement for ZODB 3.7.2, since we might need to use
