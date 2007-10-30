@@ -41,12 +41,12 @@ class Retry:
         while 1:
             try:
                 result = self.application(environ, self.buffer_start_response)
-            except self.retryable:
+            except self.retryable, e:
+                i += 1
                 if environ.get('wsgi.errors'):
                     errors = environ['wsgi.errors']
-                    errors.write('repoze.retry retrying a conflict error:\n')
+                    errors.write('repoze.retry retrying, count = %s\n' % i)
                     traceback.print_exc(environ['wsgi.errors'])
-                i += 1
                 if i < self.tries:
                     continue
                 self.call_start_response(start_response)
