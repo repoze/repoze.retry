@@ -2,9 +2,9 @@ repoze.retry README
 
   Overview
 
-    This package implements a WSGI Middleware filter which intercepts "retryable"
-    exceptions and retries the WSGI request a configurable number of times.
-    By default, the retryable exception is 'ZODB.POSException.ConflictError'.
+    This package implements a WSGI Middleware filter which intercepts
+    "retryable" exceptions and retries the WSGI request a configurable number
+    of times.
 
   Installation
 
@@ -13,6 +13,9 @@ repoze.retry README
       $ bin/easy_install --find-links=http://dist.repoze.org/ repoze.retry
 
   Configuraiton
+    
+    By default, the retryable exception is 'ZODB.POSException.ConflictError';
+    the 'tries' count defaults to 3 times.
 
     If you want to use the default configuration, you can just include the
     filter in your application's pipeline.  Note that the filter should come
@@ -37,7 +40,7 @@ repoze.retry README
         tries = 2
         retryable = egg:mypackage.exceptions:SomeRetryableException
 
-    and then use it in the pipeline:
+    and then use it in the pipeline::
 
         [pipeline:main]
         pipeline = egg:Paste#cgitb
