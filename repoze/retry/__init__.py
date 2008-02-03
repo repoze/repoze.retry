@@ -1,6 +1,12 @@
 # repoze retry-on-conflict-error behavior
 import traceback
 
+try:
+    from ZODB.POSException import ConflictError
+except ImportError:
+    class ConflictError(Exception):
+        pass
+
 class Retry:
     def __init__(self, application, tries, retryable=None):
         """ WSGI Middlware which retries a configurable set of exception types.
@@ -17,7 +23,6 @@ class Retry:
         self.start_response_result = None
 
         if retryable is None:
-            from ZODB.POSException import ConflictError
             retryable = ConflictError
 
         if not isinstance(retryable, (list, tuple)):
