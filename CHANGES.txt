@@ -1,3 +1,7 @@
+0.8
+
+ Added WSGI conformance testing for the middleware.
+
 0.7
 
  Made the retryable exception(s) configurable, removing the hardwired

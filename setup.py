@@ -1,4 +1,4 @@
-__version__ = '0.7'
+__version__ = '0.8dev'
 
 import os
 from setuptools import setup, find_packages
@@ -29,6 +29,9 @@ setup(name='repoze.retry',
       zip_safe=False,
       install_requires=[],
       test_suite = "repoze.retry.tests",
+      tests_require=[
+        'wsgiref',
+      ],
       entry_points="""
       [paste.filter_app_factory]
       retry = repoze.retry:make_retry

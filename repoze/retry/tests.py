@@ -1,5 +1,4 @@
 import unittest
-import sys
 
 class CEBase:
 
@@ -9,7 +8,15 @@ class CEBase:
 
     ConflictError = property(_getConflictError,)
 
-class TestRetry(unittest.TestCase, CEBase):
+_MINIMAL_HEADERS = [('Content-Type', 'text/plain')]
+
+def _faux_start_response(result, headers):
+    pass
+
+class RetryTests(unittest.TestCase, CEBase):
+
+    _dummy_start_response_result = None
+
     def _getTargetClass(self):
         from repoze.retry import Retry
         return Retry
@@ -17,22 +24,23 @@ class TestRetry(unittest.TestCase, CEBase):
     def _makeOne(self, *arg, **kw):
         return self._getTargetClass()(*arg, **kw)
 
-    def setUp(self):
-        self._dummy_start_response_result = None
+    def _makeEnv(self, **kw):
+        return {}
 
     def test_conflict_not_raised_start_response_not_called(self):
         application = DummyApplication(conflicts=1)
         retry = self._makeOne(application, tries=4,
                               retryable=(self.ConflictError,))
-        result = retry({}, None)
-        self.assertEqual(result, ['hello'])
+        result = retry(self._makeEnv(), _faux_start_response)
+        self.assertEqual(list(result), ['hello'])
         self.assertEqual(application.called, 1)
 
     def test_conflict_raised_start_response_not_called(self):
         application = DummyApplication(conflicts=5)
         retry = self._makeOne(application, tries=4,
                               retryable=(self.ConflictError,))
-        self.failUnlessRaises(self.ConflictError, retry, {}, None)
+        self.failUnlessRaises(self.ConflictError,
+                              retry, self._makeEnv(), _faux_start_response)
         self.assertEqual(application.called, 4)
 
     def _dummy_start_response(self, *arg):
@@ -42,25 +50,27 @@ class TestRetry(unittest.TestCase, CEBase):
         application = DummyApplication(conflicts=5, call_start_response=True)
         retry = self._makeOne(application, tries=4,
                               retryable=(self.ConflictError,))
-        self.failUnlessRaises(self.ConflictError, retry, {},
+        self.failUnlessRaises(self.ConflictError, retry, self._makeEnv(),
                               self._dummy_start_response)
         self.assertEqual(application.called, 4)
-        self.assertEqual(self._dummy_start_response_result, ('200 OK', {}))
+        self.assertEqual(self._dummy_start_response_result,
+                         ('200 OK', _MINIMAL_HEADERS))
 
     def test_conflict_not_raised_start_response_called(self):
         application = DummyApplication(conflicts=1, call_start_response=True)
         retry = self._makeOne(application, tries=4,
                               retryable=(self.ConflictError,))
-        result = retry({}, self._dummy_start_response)
+        result = retry(self._makeEnv(), self._dummy_start_response)
         self.assertEqual(application.called, 1)
-        self.assertEqual(self._dummy_start_response_result, ('200 OK', {}))
-        self.assertEqual(result, ['hello'])
+        self.assertEqual(self._dummy_start_response_result,
+                         ('200 OK', _MINIMAL_HEADERS))
+        self.assertEqual(list(result), ['hello'])
 
     def test_alternate_retryble_exception(self):
         application = DummyApplication(conflicts=1, exception=Retryable)
         retry = self._makeOne(application, tries=4, retryable=(Retryable,))
-        result = retry({}, None)
-        self.assertEqual(result, ['hello'])
+        result = retry(self._makeEnv(), _faux_start_response)
+        self.assertEqual(list(result), ['hello'])
         self.assertEqual(application.called, 1)
 
     def test_alternate_retryble_exceptions(self):
@@ -69,15 +79,40 @@ class TestRetry(unittest.TestCase, CEBase):
 
         retry1 = self._makeOne(app1, tries=4,
                                retryable=(self.ConflictError, Retryable,))
-        result = retry1({}, None)
-        self.assertEqual(result, ['hello'])
+        result = retry1(self._makeEnv(), _faux_start_response)
+        self.assertEqual(list(result), ['hello'])
         self.assertEqual(app1.called, 1)
 
         retry2 = self._makeOne(app2, tries=4,
                                retryable=(self.ConflictError, Retryable,))
-        result = retry2({}, None)
-        self.assertEqual(result, ['hello'])
+        result = retry2(self._makeEnv(), _faux_start_response)
+        self.assertEqual(list(result), ['hello'])
         self.assertEqual(app2.called, 1)
+
+class WSGIConformanceTests(RetryTests):
+
+    def setUp(self):
+        import warnings
+        warnings.filterwarnings(action='error')
+
+    def tearDown(self):
+        import warnings
+        warnings.resetwarnings()
+
+    def _makeOne(self, app, *arg, **kw):
+        from wsgiref.validate import validator
+        rhs = validator(app)
+        retry = self._getTargetClass()(rhs, *arg, **kw)
+        lhs = validator(retry)
+        return lhs
+
+    def _makeEnv(self, **kw):
+        from wsgiref.util import setup_testing_defaults
+        env = {}
+        setup_testing_defaults(env)
+        env.update(kw)
+        env['QUERY_STRING'] = ''
+        return env
 
 class FactoryTests(unittest.TestCase, CEBase):
 
@@ -122,6 +157,22 @@ class Retryable(Exception):
 class AnotherRetryable(Exception):
     pass
 
+class IterCallsStartResponse:
+    """ This is a wrapper to appease the lint checker:  if the app
+        does *not* call 'start_response' itself, then the checker barfs
+        if the returned iterable does not call 'start_response' before
+        returning the first chunk.
+    """
+    def __init__(self, start_response, *args):
+        self.start_response = start_response
+        self.args = args
+
+    def __iter__(self):
+        if self.start_response:
+            self.start_response('200 OK', _MINIMAL_HEADERS)
+            del self.start_response
+        return iter(self.args)
+ 
 class DummyApplication(CEBase):
     def __init__(self, conflicts, call_start_response=False,
                  exception=None):
@@ -134,13 +185,17 @@ class DummyApplication(CEBase):
 
     def __call__(self, environ, start_response):
         if self.call_start_response:
-            start_response('200 OK', {})
+            start_response('200 OK', _MINIMAL_HEADERS)
         if self.called < self.conflicts:
             self.called += 1
             raise self.exception
-        return ['hello']
+        if self.call_start_response:
+            return ['hello']
+        # Dead chicken (see above)
+        return IterCallsStartResponse(start_response, 'hello')
 
 def test_suite():
+    import sys
     return unittest.findTestCases(sys.modules[__name__])
 
 if __name__ == '__main__':
