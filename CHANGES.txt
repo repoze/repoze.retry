@@ -1,3 +1,10 @@
+0.9 (2008-06-15)
+
+ Fixed concurrency bug whereby a response from one request might be
+ returned as result of a different request.
+
+ Initial PyPI release.
+
 0.8
 
  Added WSGI conformance testing for the middleware.

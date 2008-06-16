@@ -10,7 +10,7 @@ class CEBase:
 
 _MINIMAL_HEADERS = [('Content-Type', 'text/plain')]
 
-def _faux_start_response(result, headers):
+def _faux_start_response(result, headers, exc_info=None):
     pass
 
 class RetryTests(unittest.TestCase, CEBase):
@@ -39,8 +39,9 @@ class RetryTests(unittest.TestCase, CEBase):
         application = DummyApplication(conflicts=5)
         retry = self._makeOne(application, tries=4,
                               retryable=(self.ConflictError,))
+        env = self._makeEnv()
         self.failUnlessRaises(self.ConflictError,
-                              retry, self._makeEnv(), _faux_start_response)
+                              retry, env, _faux_start_response)
         self.assertEqual(application.called, 4)
 
     def _dummy_start_response(self, *arg):
@@ -54,7 +55,7 @@ class RetryTests(unittest.TestCase, CEBase):
                               self._dummy_start_response)
         self.assertEqual(application.called, 4)
         self.assertEqual(self._dummy_start_response_result,
-                         ('200 OK', _MINIMAL_HEADERS))
+                         ('200 OK', _MINIMAL_HEADERS, None))
 
     def test_conflict_not_raised_start_response_called(self):
         application = DummyApplication(conflicts=1, call_start_response=True)
@@ -63,7 +64,7 @@ class RetryTests(unittest.TestCase, CEBase):
         result = retry(self._makeEnv(), self._dummy_start_response)
         self.assertEqual(application.called, 1)
         self.assertEqual(self._dummy_start_response_result,
-                         ('200 OK', _MINIMAL_HEADERS))
+                         ('200 OK', _MINIMAL_HEADERS, None))
         self.assertEqual(list(result), ['hello'])
 
     def test_alternate_retryble_exception(self):
