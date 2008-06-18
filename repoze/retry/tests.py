@@ -90,6 +90,33 @@ class RetryTests(unittest.TestCase, CEBase):
         self.assertEqual(list(result), ['hello'])
         self.assertEqual(app2.called, 1)
 
+    def test_wsgi_input_seeked_to_zero_on_conflict_withcontentlen(self):
+        application = DummyApplication(conflicts=3, call_start_response=True)
+        retry = self._makeOne(application, tries=4,
+                              retryable=(self.ConflictError,))
+        env = self._makeEnv()
+        data = 'x' * 1000
+        env['CONTENT_LENGTH'] = str(len(data))
+        from StringIO import StringIO
+        env['wsgi.input'] = StringIO(data)
+        result = retry(env, self._dummy_start_response)
+        self.assertEqual(application.called, 3)
+        self.failIf(isinstance(env['wsgi.input'], StringIO))
+        self.assertEqual(application.wsgi_input, data)
+
+    def test_wsgi_input_seeked_to_zero_on_conflict_nocontentlen(self):
+        application = DummyApplication(conflicts=3, call_start_response=True)
+        retry = self._makeOne(application, tries=4,
+                              retryable=(self.ConflictError,))
+        env = self._makeEnv()
+        data = 'x' * 1000
+        from StringIO import StringIO
+        env['wsgi.input'] = StringIO(data)
+        result = retry(env, self._dummy_start_response)
+        self.assertEqual(application.called, 3)
+        self.failIf(isinstance(env['wsgi.input'], StringIO))
+        self.assertEqual(application.wsgi_input, '')
+
 class WSGIConformanceTests(RetryTests):
 
     def setUp(self):
@@ -183,6 +210,7 @@ class DummyApplication(CEBase):
         if exception is None:
             exception = self.ConflictError
         self.exception = exception
+        self.wsgi_input = ''
 
     def __call__(self, environ, start_response):
         if self.call_start_response:
@@ -190,6 +218,8 @@ class DummyApplication(CEBase):
         if self.called < self.conflicts:
             self.called += 1
             raise self.exception
+        if environ.get('wsgi.input'):
+            self.wsgi_input = environ['wsgi.input'].read()
         if self.call_start_response:
             return ['hello']
         # Dead chicken (see above)

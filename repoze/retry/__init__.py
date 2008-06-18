@@ -1,6 +1,8 @@
 # repoze retry-on-conflict-error behavior
-import traceback
 import itertools
+import os
+import traceback
+from tempfile import TemporaryFile
 
 try:
     from ZODB.POSException import ConflictError
@@ -33,6 +35,24 @@ class Retry:
     def __call__(self, environ, start_response):
         catch_response = []
         written = []
+        original_wsgi_input = environ.get('wsgi.input')
+        new_wsgi_input = None
+
+        if original_wsgi_input is not None:
+            cl = environ.get('CONTENT_LENGTH', '0')
+            cl = int(cl)
+            new_wsgi_input = environ['wsgi.input'] = TemporaryFile('w+b')
+            rest = cl
+            chunksize = 1<<20
+            while rest:
+                if rest <= chunksize:
+                    chunk = original_wsgi_input.read(rest)
+                    rest = 0
+                else:
+                    chunk = original_wsgi_input.read(chunksize)
+                    rest = rest - chunksize
+                new_wsgi_input.write(chunk)
+            new_wsgi_input.seek(0)
 
         def replace_start_response(status, headers, exc_info=None):
             catch_response[:] = [status, headers, exc_info]
@@ -49,6 +69,8 @@ class Retry:
                     errors.write('repoze.retry retrying, count = %s\n' % i)
                     traceback.print_exc(environ['wsgi.errors'])
                 if i < self.tries:
+                    if new_wsgi_input is not None:
+                        new_wsgi_input.seek(0)
                     continue
                 if catch_response:
                     start_response(*catch_response)

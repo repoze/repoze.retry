@@ -1,3 +1,8 @@
+0.9.1 (2008-06-18)
+
+ Seek wsgi.input back to zero before retrying a request due to a
+ conflict error.
+
 0.9 (2008-06-15)
 
  Fixed concurrency bug whereby a response from one request might be
