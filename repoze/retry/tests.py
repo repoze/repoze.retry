@@ -31,18 +31,27 @@ class RetryTests(unittest.TestCase, CEBase):
         application = DummyApplication(conflicts=1)
         retry = self._makeOne(application, tries=4,
                               retryable=(self.ConflictError,))
-        result = retry(self._makeEnv(), _faux_start_response)
-        self.assertEqual(list(result), ['hello'])
-        self.assertEqual(application.called, 1)
+        self.assertRaises(AssertionError, retry, self._makeEnv(),
+                          _faux_start_response)
 
     def test_conflict_raised_start_response_not_called(self):
         application = DummyApplication(conflicts=5)
         retry = self._makeOne(application, tries=4,
                               retryable=(self.ConflictError,))
         env = self._makeEnv()
+        import StringIO
+        env['wsgi.errors'] = StringIO.StringIO()
         self.failUnlessRaises(self.ConflictError,
                               retry, env, _faux_start_response)
         self.assertEqual(application.called, 4)
+        errors = env['wsgi.errors']
+        while 1:
+            # deal with lint test wrapping
+            if hasattr(errors, 'errors'): 
+                errors = errors.errors
+            else:
+                break
+        self.failUnless(errors.getvalue().startswith('repoze.retry retrying'))
 
     def _dummy_start_response(self, *arg):
         self._dummy_start_response_result = arg
@@ -61,33 +70,37 @@ class RetryTests(unittest.TestCase, CEBase):
         application = DummyApplication(conflicts=1, call_start_response=True)
         retry = self._makeOne(application, tries=4,
                               retryable=(self.ConflictError,))
-        result = retry(self._makeEnv(), self._dummy_start_response)
+        result = unwind(retry(self._makeEnv(), self._dummy_start_response))
         self.assertEqual(application.called, 1)
         self.assertEqual(self._dummy_start_response_result,
                          ('200 OK', _MINIMAL_HEADERS, None))
-        self.assertEqual(list(result), ['hello'])
+        self.assertEqual(result, ['hello'])
 
     def test_alternate_retryble_exception(self):
-        application = DummyApplication(conflicts=1, exception=Retryable)
+        application = DummyApplication(conflicts=1, exception=Retryable,
+                                       call_start_response=True)
         retry = self._makeOne(application, tries=4, retryable=(Retryable,))
-        result = retry(self._makeEnv(), _faux_start_response)
-        self.assertEqual(list(result), ['hello'])
+        # this test generates a __del__ error
+        result = unwind(retry(self._makeEnv(), _faux_start_response))
+        self.assertEqual(result, ['hello'])
         self.assertEqual(application.called, 1)
 
     def test_alternate_retryble_exceptions(self):
-        app1 = DummyApplication(conflicts=1)
-        app2 = DummyApplication(conflicts=1, exception=Retryable)
+        app1 = DummyApplication(conflicts=1,
+                                call_start_response=True)
+        app2 = DummyApplication(conflicts=1, exception=Retryable,
+                                       call_start_response=True)
 
         retry1 = self._makeOne(app1, tries=4,
                                retryable=(self.ConflictError, Retryable,))
-        result = retry1(self._makeEnv(), _faux_start_response)
-        self.assertEqual(list(result), ['hello'])
+        result = unwind(retry1(self._makeEnv(), _faux_start_response))
+        self.assertEqual(result, ['hello'])
         self.assertEqual(app1.called, 1)
 
         retry2 = self._makeOne(app2, tries=4,
                                retryable=(self.ConflictError, Retryable,))
-        result = retry2(self._makeEnv(), _faux_start_response)
-        self.assertEqual(list(result), ['hello'])
+        result = unwind(retry2(self._makeEnv(), _faux_start_response))
+        self.assertEqual(result, ['hello'])
         self.assertEqual(app2.called, 1)
 
     def test_wsgi_input_seeked_to_zero_on_conflict_withcontentlen(self):
@@ -99,23 +112,44 @@ class RetryTests(unittest.TestCase, CEBase):
         env['CONTENT_LENGTH'] = str(len(data))
         from StringIO import StringIO
         env['wsgi.input'] = StringIO(data)
-        result = retry(env, self._dummy_start_response)
+        result = unwind(retry(env, self._dummy_start_response))
         self.assertEqual(application.called, 3)
         self.failIf(isinstance(env['wsgi.input'], StringIO))
         self.assertEqual(application.wsgi_input, data)
 
-    def test_wsgi_input_seeked_to_zero_on_conflict_nocontentlen(self):
-        application = DummyApplication(conflicts=3, call_start_response=True)
+    def test_socket_timeout_error(self):
+        from socket import timeout
+        env = self._makeEnv()
+        env['CONTENT_LENGTH'] = '100'
+        class SocketErrorRaisingStream:
+            def read(self, amt):
+                raise timeout()
+
+            def readline(self, amt):
+                raise timeout()
+
+            def readlines(self, amt):
+                raise timeout()
+
+            def __iter__(self):
+                return self
+
+            def next(self):
+                raise timeout()
+                
+        env['wsgi.input'] = SocketErrorRaisingStream()
+        application = DummyApplication(conflicts=0, call_start_response=True)
         retry = self._makeOne(application, tries=4,
                               retryable=(self.ConflictError,))
-        env = self._makeEnv()
-        data = 'x' * 1000
-        from StringIO import StringIO
-        env['wsgi.input'] = StringIO(data)
-        result = retry(env, self._dummy_start_response)
-        self.assertEqual(application.called, 3)
-        self.failIf(isinstance(env['wsgi.input'], StringIO))
-        self.assertEqual(application.wsgi_input, '')
+        result = unwind(retry(env, self._dummy_start_response))
+        self.assertEqual(application.called, 0)
+        msg = 'Not enough data in request or socket error'
+        self.assertEqual(result, [msg])
+        self.assertEqual(self._dummy_start_response_result[0],
+                         '400 Bad Request')
+        self.assertEqual(self._dummy_start_response_result[1],
+                         [('Content-Type', 'text/plain'),
+                          ('Content-Length', str(len(msg)))])
 
 class WSGIConformanceTests(RetryTests):
 
@@ -141,6 +175,13 @@ class WSGIConformanceTests(RetryTests):
         env.update(kw)
         env['QUERY_STRING'] = ''
         return env
+
+def unwind(result):
+    # we need to close the app iter to shut lint up
+    result2 = list(result)
+    if hasattr(result, 'close'):
+        result.close()
+    return result2
 
 class FactoryTests(unittest.TestCase, CEBase):
 
@@ -185,22 +226,6 @@ class Retryable(Exception):
 class AnotherRetryable(Exception):
     pass
 
-class IterCallsStartResponse:
-    """ This is a wrapper to appease the lint checker:  if the app
-        does *not* call 'start_response' itself, then the checker barfs
-        if the returned iterable does not call 'start_response' before
-        returning the first chunk.
-    """
-    def __init__(self, start_response, *args):
-        self.start_response = start_response
-        self.args = args
-
-    def __iter__(self):
-        if self.start_response:
-            self.start_response('200 OK', _MINIMAL_HEADERS)
-            del self.start_response
-        return iter(self.args)
- 
 class DummyApplication(CEBase):
     def __init__(self, conflicts, call_start_response=False,
                  exception=None):
@@ -220,10 +245,7 @@ class DummyApplication(CEBase):
             raise self.exception
         if environ.get('wsgi.input'):
             self.wsgi_input = environ['wsgi.input'].read()
-        if self.call_start_response:
-            return ['hello']
-        # Dead chicken (see above)
-        return IterCallsStartResponse(start_response, 'hello')
+        return ['hello']
 
 def test_suite():
     import sys

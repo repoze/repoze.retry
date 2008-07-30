@@ -1,3 +1,15 @@
+0.9.2 (2008-07-30)
+
+ Close the app_iter at appropriate points to silence lint errors.
+
+ Return a Bad Request error if we get a socket error while reading
+ input.
+
+ Fix traceback output to wsgi.errors (it was going to console).
+
+ Assert that downstream app must call start_response before successfully
+ returning.
+
 0.9.1 (2008-06-18)
 
  Seek wsgi.input back to zero before retrying a request due to a

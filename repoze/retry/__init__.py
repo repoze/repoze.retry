@@ -1,8 +1,8 @@
 # repoze retry-on-conflict-error behavior
 import itertools
-import os
-import traceback
+import socket
 from tempfile import TemporaryFile
+import traceback
 
 try:
     from ZODB.POSException import ConflictError
@@ -46,7 +46,16 @@ class Retry:
             chunksize = 1<<20
             while rest:
                 if rest <= chunksize:
-                    chunk = original_wsgi_input.read(rest)
+                    try:
+                        chunk = original_wsgi_input.read(rest)
+                    except socket.error:
+                        msg = 'Not enough data in request or socket error'
+                        start_response('400 Bad Request', [
+                            ('Content-Type', 'text/plain'),
+                            ('Content-Length', str(len(msg))),
+                            ]
+                        )
+                        return [msg]
                     rest = 0
                 else:
                     chunk = original_wsgi_input.read(chunksize)
@@ -67,10 +76,11 @@ class Retry:
                 if environ.get('wsgi.errors'):
                     errors = environ['wsgi.errors']
                     errors.write('repoze.retry retrying, count = %s\n' % i)
-                    traceback.print_exc(environ['wsgi.errors'])
+                    traceback.print_exc(None, environ['wsgi.errors'])
                 if i < self.tries:
                     if new_wsgi_input is not None:
                         new_wsgi_input.seek(0)
+                    catch_response[:] = []
                     continue
                 if catch_response:
                     start_response(*catch_response)
@@ -78,7 +88,18 @@ class Retry:
             else:
                 if catch_response:
                     start_response(*catch_response)
-                return itertools.chain(written, app_iter)
+                else:
+                    if hasattr(app_iter, 'close'):
+                        app_iter.close()
+                    raise AssertionError('app must call start_response before '
+                                         'returning')
+                return close_when_done_generator(written, app_iter)
+
+def close_when_done_generator(written, app_iter):
+    for chunk in itertools.chain(written, app_iter):
+        yield chunk
+    if hasattr(app_iter, 'close'):
+        app_iter.close()
 
 def make_retry(app, global_conf, **local_conf):
     from pkg_resources import EntryPoint
