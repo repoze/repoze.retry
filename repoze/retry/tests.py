@@ -117,6 +117,20 @@ class RetryTests(unittest.TestCase, CEBase):
         self.failIf(isinstance(env['wsgi.input'], StringIO))
         self.assertEqual(application.wsgi_input, data)
 
+    def test_largechunksize(self):
+        application = DummyApplication(conflicts=3, call_start_response=True)
+        retry = self._makeOne(application, tries=4,
+                              retryable=(self.ConflictError,))
+        env = self._makeEnv()
+        data = 'x' * ((1<<20) + 1)
+        env['CONTENT_LENGTH'] = str(len(data))
+        from StringIO import StringIO
+        env['wsgi.input'] = StringIO(data)
+        result = unwind(retry(env, self._dummy_start_response))
+        self.assertEqual(application.called, 3)
+        self.failIf(isinstance(env['wsgi.input'], StringIO))
+        self.assertEqual(application.wsgi_input, data)
+
     def test_socket_timeout_error(self):
         from socket import timeout
         env = self._makeEnv()
