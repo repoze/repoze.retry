@@ -49,7 +49,7 @@ for the filter::
         [filter:retry]
         use = egg:repoze.retry
         tries = 2
-        retryable = egg:mypackage.exceptions:SomeRetryableException
+        retryable = mypackage.exceptions:SomeRetryableException
 
 and then use it in the pipeline::
 
