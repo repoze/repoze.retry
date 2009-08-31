@@ -7,6 +7,12 @@ class CEBase:
         return ConflictError
 
     ConflictError = property(_getConflictError,)
+    
+    def _getRetryException(self):
+        from repoze.retry import RetryException
+        return RetryException
+
+    RetryException = property(_getRetryException,)
 
 _MINIMAL_HEADERS = [('Content-Type', 'text/plain')]
 
@@ -206,7 +212,7 @@ class FactoryTests(unittest.TestCase, CEBase):
         self.failUnless(middleware.application is app)
         self.assertEqual(middleware.tries, 3)
         self.assertEqual(middleware.tries, 3)
-        self.assertEqual(middleware.retryable, (self.ConflictError,))
+        self.assertEqual(middleware.retryable, (self.ConflictError, self.RetryException))
 
     def test_make_retry_override_tries(self):
         from repoze.retry import make_retry #FUT
@@ -214,7 +220,7 @@ class FactoryTests(unittest.TestCase, CEBase):
         middleware = make_retry(app, {}, tries=4)
         self.failUnless(middleware.application is app)
         self.assertEqual(middleware.tries, 4)
-        self.assertEqual(middleware.retryable, (self.ConflictError,))
+        self.assertEqual(middleware.retryable, (self.ConflictError, self.RetryException))
 
     def test_make_retry_override_retryable_one(self):
         from repoze.retry import make_retry #FUT

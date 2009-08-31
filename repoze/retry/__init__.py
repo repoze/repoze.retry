@@ -10,6 +10,12 @@ except ImportError:
     class ConflictError(Exception):
         pass
 
+try:
+    from ZPublisher.Publish import Retry as RetryException
+except ImportError:
+    class RetryException(Exception):
+        pass
+
 class Retry:
     def __init__(self, application, tries, retryable=None):
         """ WSGI Middlware which retries a configurable set of exception types.
@@ -25,7 +31,7 @@ class Retry:
         self.tries = tries
 
         if retryable is None:
-            retryable = ConflictError
+            retryable = (ConflictError, RetryException,)
 
         if not isinstance(retryable, (list, tuple)):
             retryable = [retryable]
