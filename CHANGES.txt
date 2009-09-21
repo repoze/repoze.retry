@@ -1,5 +1,5 @@
-Next release
-------------
+0.9.3 (2009-09-30)
+------------------
 
 - Don't write a temporary file unless the request content length is
   greater than 2MB (use a StringIO instead).
