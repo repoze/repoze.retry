@@ -33,6 +33,13 @@ class RetryTests(unittest.TestCase, CEBase):
     def _makeEnv(self, **kw):
         return {}
 
+    def test_retryable_is_not_sequence(self):
+        application = DummyApplication(conflicts=1)
+        retry = self._makeOne(application, tries=4,
+                              retryable=self.ConflictError)
+        if hasattr(retry, 'retryable'):
+            self.assertEqual(retry.retryable, (self.ConflictError,))
+
     def test_conflict_not_raised_start_response_not_called(self):
         application = DummyApplication(conflicts=1)
         retry = self._makeOne(application, tries=4,
@@ -117,10 +124,11 @@ class RetryTests(unittest.TestCase, CEBase):
         data = 'x' * 1000
         env['CONTENT_LENGTH'] = str(len(data))
         from StringIO import StringIO
-        env['wsgi.input'] = StringIO(data)
+        wsgi_input = StringIO(data)
+        env['wsgi.input'] = wsgi_input
         result = unwind(retry(env, self._dummy_start_response))
         self.assertEqual(application.called, 3)
-        self.failIf(isinstance(env['wsgi.input'], StringIO))
+        self.failIf(env['wsgi.input'] is wsgi_input)
         self.assertEqual(application.wsgi_input, data)
 
     def test_largechunksize(self):
@@ -131,10 +139,26 @@ class RetryTests(unittest.TestCase, CEBase):
         data = 'x' * ((1<<20) + 1)
         env['CONTENT_LENGTH'] = str(len(data))
         from StringIO import StringIO
-        env['wsgi.input'] = StringIO(data)
+        wsgi_input = StringIO(data)
+        env['wsgi.input'] = wsgi_input
         result = unwind(retry(env, self._dummy_start_response))
         self.assertEqual(application.called, 3)
-        self.failIf(isinstance(env['wsgi.input'], StringIO))
+        self.failIf(env['wsgi.input'] is wsgi_input)
+        self.assertEqual(application.wsgi_input, data)
+
+    def test_over_highwater(self):
+        application = DummyApplication(conflicts=3, call_start_response=True)
+        retry = self._makeOne(application, tries=4,
+                              retryable=(self.ConflictError, ), highwater=10)
+        env = self._makeEnv()
+        data = 'x' * 20
+        env['CONTENT_LENGTH'] = str(len(data))
+        from StringIO import StringIO
+        wsgi_input = StringIO(data)
+        env['wsgi.input'] = wsgi_input
+        result = unwind(retry(env, self._dummy_start_response))
+        self.assertEqual(application.called, 3)
+        self.failIf(env['wsgi.input'] is wsgi_input)
         self.assertEqual(application.wsgi_input, data)
 
     def test_socket_timeout_error(self):

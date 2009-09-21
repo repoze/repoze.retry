@@ -3,6 +3,7 @@ import itertools
 import socket
 from tempfile import TemporaryFile
 import traceback
+from StringIO import StringIO
 
 try:
     from ZODB.POSException import ConflictError
@@ -17,7 +18,7 @@ except ImportError:
         pass
 
 class Retry:
-    def __init__(self, application, tries, retryable=None):
+    def __init__(self, application, tries, retryable=None, highwater=2<<20):
         """ WSGI Middlware which retries a configurable set of exception types.
 
         o 'application' is the RHS in the WSGI "pipeline".
@@ -26,6 +27,8 @@ class Retry:
 
         o 'retryable' is a sequence of one or more exception types which,
           if raised, indicate that the request should be retried.
+
+        o 
         """
         self.application = application
         self.tries = tries
@@ -37,6 +40,7 @@ class Retry:
             retryable = [retryable]
 
         self.retryable = tuple(retryable)
+        self.highwater = highwater
 
     def __call__(self, environ, start_response):
         catch_response = []
@@ -47,7 +51,10 @@ class Retry:
         if original_wsgi_input is not None:
             cl = environ.get('CONTENT_LENGTH', '0')
             cl = int(cl)
-            new_wsgi_input = environ['wsgi.input'] = TemporaryFile('w+b')
+            if cl > self.highwater:
+                new_wsgi_input = environ['wsgi.input'] = TemporaryFile('w+b')
+            else:
+                new_wsgi_input = environ['wsgi.input'] = StringIO()
             rest = cl
             chunksize = 1<<20
             while rest:
@@ -111,7 +118,8 @@ def make_retry(app, global_conf, **local_conf):
     from pkg_resources import EntryPoint
     tries = int(local_conf.get('tries', 3))
     retryable = local_conf.get('retryable')
+    highwater = local_conf.get('highwater', 2<<20)
     if retryable is not None:
         retryable = [EntryPoint.parse('x=%s' % x).load(False)
                       for x in retryable.split(' ')]
-    return Retry(app, tries, retryable=retryable)
+    return Retry(app, tries, retryable=retryable, highwater=highwater)

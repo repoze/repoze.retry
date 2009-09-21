@@ -1,7 +1,10 @@
 Next release
 ------------
 
-- Make ZPublisher.Publish:Retry exceptions retryiable (via a soft dependency).
+- Don't write a temporary file unless the request content length is
+  greater than 2MB (use a StringIO instead).
+
+- Make ZPublisher.Publish:Retry exceptions retryable (via a soft dependency).
   This makes repoze.retry work the same as the Zope 2 publisher when that
   module is installed.
 

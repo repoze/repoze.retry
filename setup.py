@@ -28,7 +28,7 @@ setup(name='repoze.retry',
       include_package_data=True,
       namespace_packages=['repoze'],
       zip_safe=False,
-      install_requires=[],
+      install_requires=['setuptools'],
       test_suite = "repoze.retry.tests",
       tests_require=[
         'wsgiref',
