@@ -7,7 +7,7 @@ class CEBase:
         return ConflictError
 
     ConflictError = property(_getConflictError,)
-    
+
     def _getRetryException(self):
         from repoze.retry import RetryException
         return RetryException
@@ -60,7 +60,7 @@ class RetryTests(unittest.TestCase, CEBase):
         errors = env['wsgi.errors']
         while 1:
             # deal with lint test wrapping
-            if hasattr(errors, 'errors'): 
+            if hasattr(errors, 'errors'):
                 errors = errors.errors
             else:
                 break
@@ -180,8 +180,108 @@ class RetryTests(unittest.TestCase, CEBase):
 
             def next(self):
                 raise timeout()
-                
+
         env['wsgi.input'] = SocketErrorRaisingStream()
+        application = DummyApplication(conflicts=0, call_start_response=True)
+        retry = self._makeOne(application, tries=4,
+                              retryable=(self.ConflictError,))
+        result = unwind(retry(env, self._dummy_start_response))
+        self.assertEqual(application.called, 0)
+        msg = 'Not enough data in request or socket error'
+        self.assertEqual(result, [msg])
+        self.assertEqual(self._dummy_start_response_result[0],
+                         '400 Bad Request')
+        self.assertEqual(self._dummy_start_response_result[1],
+                         [('Content-Type', 'text/plain'),
+                          ('Content-Length', str(len(msg)))])
+
+    def test_socket_timeout_error_chunked_read(self):
+        from socket import timeout
+        env = self._makeEnv()
+        env['CONTENT_LENGTH'] = str(1<<21)
+        class SocketErrorRaisingStream:
+            def read(self, amt):
+                raise timeout()
+
+            def readline(self, amt):
+                raise timeout()
+
+            def readlines(self, amt):
+                raise timeout()
+
+            def __iter__(self):
+                return self
+
+            def next(self):
+                raise timeout()
+
+        env['wsgi.input'] = SocketErrorRaisingStream()
+        application = DummyApplication(conflicts=0, call_start_response=True)
+        retry = self._makeOne(application, tries=4,
+                              retryable=(self.ConflictError,))
+        result = unwind(retry(env, self._dummy_start_response))
+        self.assertEqual(application.called, 0)
+        msg = 'Not enough data in request or socket error'
+        self.assertEqual(result, [msg])
+        self.assertEqual(self._dummy_start_response_result[0],
+                         '400 Bad Request')
+        self.assertEqual(self._dummy_start_response_result[1],
+                         [('Content-Type', 'text/plain'),
+                          ('Content-Length', str(len(msg)))])
+
+    def test_io_error(self):
+        env = self._makeEnv()
+        env['CONTENT_LENGTH'] = '100'
+        class IOErrorRaisingStream:
+            def read(self, amt):
+                raise IOError()
+
+            def readline(self, amt):
+                raise IOError()
+
+            def readlines(self, amt):
+                raise IOError()
+
+            def __iter__(self):
+                return self
+
+            def next(self):
+                raise IOError()
+
+        env['wsgi.input'] = IOErrorRaisingStream()
+        application = DummyApplication(conflicts=0, call_start_response=True)
+        retry = self._makeOne(application, tries=4,
+                              retryable=(self.ConflictError,))
+        result = unwind(retry(env, self._dummy_start_response))
+        self.assertEqual(application.called, 0)
+        msg = 'Not enough data in request or socket error'
+        self.assertEqual(result, [msg])
+        self.assertEqual(self._dummy_start_response_result[0],
+                         '400 Bad Request')
+        self.assertEqual(self._dummy_start_response_result[1],
+                         [('Content-Type', 'text/plain'),
+                          ('Content-Length', str(len(msg)))])
+
+    def test_io_timeout_error_chunked_read(self):
+        env = self._makeEnv()
+        env['CONTENT_LENGTH'] = str(1<<21)
+        class IOErrorRaisingStream:
+            def read(self, amt):
+                raise IOError()
+
+            def readline(self, amt):
+                raise IOError()
+
+            def readlines(self, amt):
+                raise IOError()
+
+            def __iter__(self):
+                return self
+
+            def next(self):
+                raise IOError()
+
+        env['wsgi.input'] = IOErrorRaisingStream()
         application = DummyApplication(conflicts=0, call_start_response=True)
         retry = self._makeOne(application, tries=4,
                               retryable=(self.ConflictError,))

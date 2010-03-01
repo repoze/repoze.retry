@@ -28,7 +28,7 @@ class Retry:
         o 'retryable' is a sequence of one or more exception types which,
           if raised, indicate that the request should be retried.
 
-        o 
+        o
         """
         self.application = application
         self.tries = tries
@@ -57,23 +57,25 @@ class Retry:
                 new_wsgi_input = environ['wsgi.input'] = StringIO()
             rest = cl
             chunksize = 1<<20
-            while rest:
-                if rest <= chunksize:
-                    try:
+            try:
+                while rest:
+                    if rest <= chunksize:
                         chunk = original_wsgi_input.read(rest)
-                    except socket.error:
-                        msg = 'Not enough data in request or socket error'
-                        start_response('400 Bad Request', [
-                            ('Content-Type', 'text/plain'),
-                            ('Content-Length', str(len(msg))),
-                            ]
-                        )
-                        return [msg]
-                    rest = 0
-                else:
-                    chunk = original_wsgi_input.read(chunksize)
-                    rest = rest - chunksize
-                new_wsgi_input.write(chunk)
+                        rest = 0
+                    else:
+                        chunk = original_wsgi_input.read(chunksize)
+                        rest = rest - chunksize
+                    new_wsgi_input.write(chunk)
+            except (socket.error, IOError):
+                # Different wsgi servers will generate either socket.error or
+                # IOError if there is a problem reading POST data from browser.
+                msg = 'Not enough data in request or socket error'
+                start_response('400 Bad Request', [
+                    ('Content-Type', 'text/plain'),
+                    ('Content-Length', str(len(msg))),
+                    ]
+                )
+                return [msg]
             new_wsgi_input.seek(0)
 
         def replace_start_response(status, headers, exc_info=None):

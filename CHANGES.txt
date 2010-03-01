@@ -1,3 +1,11 @@
+0.9.4 (2010-03-01)
+------------------
+
+- Fixed bug where wsgi.input read errors were not being caught for payloads
+  large enough to cause a chunked read.  Also expanded the error handling for
+  this part to catch IOError in addition to socket.error, since mod_wsgi has
+  been observed to raise IOError in some cases.
+
 0.9.3 (2009-09-30)
 ------------------
 
