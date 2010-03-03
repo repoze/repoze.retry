@@ -126,7 +126,7 @@ class RetryTests(unittest.TestCase, CEBase):
         from StringIO import StringIO
         wsgi_input = StringIO(data)
         env['wsgi.input'] = wsgi_input
-        result = unwind(retry(env, self._dummy_start_response))
+        unwind(retry(env, self._dummy_start_response))
         self.assertEqual(application.called, 3)
         self.failIf(env['wsgi.input'] is wsgi_input)
         self.assertEqual(application.wsgi_input, data)
@@ -141,7 +141,7 @@ class RetryTests(unittest.TestCase, CEBase):
         from StringIO import StringIO
         wsgi_input = StringIO(data)
         env['wsgi.input'] = wsgi_input
-        result = unwind(retry(env, self._dummy_start_response))
+        unwind(retry(env, self._dummy_start_response))
         self.assertEqual(application.called, 3)
         self.failIf(env['wsgi.input'] is wsgi_input)
         self.assertEqual(application.wsgi_input, data)
@@ -156,7 +156,7 @@ class RetryTests(unittest.TestCase, CEBase):
         from StringIO import StringIO
         wsgi_input = StringIO(data)
         env['wsgi.input'] = wsgi_input
-        result = unwind(retry(env, self._dummy_start_response))
+        unwind(retry(env, self._dummy_start_response))
         self.assertEqual(application.called, 3)
         self.failIf(env['wsgi.input'] is wsgi_input)
         self.assertEqual(application.wsgi_input, data)
@@ -165,23 +165,7 @@ class RetryTests(unittest.TestCase, CEBase):
         from socket import timeout
         env = self._makeEnv()
         env['CONTENT_LENGTH'] = '100'
-        class SocketErrorRaisingStream:
-            def read(self, amt):
-                raise timeout()
-
-            def readline(self, amt):
-                raise timeout()
-
-            def readlines(self, amt):
-                raise timeout()
-
-            def __iter__(self):
-                return self
-
-            def next(self):
-                raise timeout()
-
-        env['wsgi.input'] = SocketErrorRaisingStream()
+        env['wsgi.input'] = ErrorRaisingStream(timeout)
         application = DummyApplication(conflicts=0, call_start_response=True)
         retry = self._makeOne(application, tries=4,
                               retryable=(self.ConflictError,))
@@ -199,23 +183,7 @@ class RetryTests(unittest.TestCase, CEBase):
         from socket import timeout
         env = self._makeEnv()
         env['CONTENT_LENGTH'] = str(1<<21)
-        class SocketErrorRaisingStream:
-            def read(self, amt):
-                raise timeout()
-
-            def readline(self, amt):
-                raise timeout()
-
-            def readlines(self, amt):
-                raise timeout()
-
-            def __iter__(self):
-                return self
-
-            def next(self):
-                raise timeout()
-
-        env['wsgi.input'] = SocketErrorRaisingStream()
+        env['wsgi.input'] = ErrorRaisingStream(timeout)
         application = DummyApplication(conflicts=0, call_start_response=True)
         retry = self._makeOne(application, tries=4,
                               retryable=(self.ConflictError,))
@@ -232,23 +200,7 @@ class RetryTests(unittest.TestCase, CEBase):
     def test_io_error(self):
         env = self._makeEnv()
         env['CONTENT_LENGTH'] = '100'
-        class IOErrorRaisingStream:
-            def read(self, amt):
-                raise IOError()
-
-            def readline(self, amt):
-                raise IOError()
-
-            def readlines(self, amt):
-                raise IOError()
-
-            def __iter__(self):
-                return self
-
-            def next(self):
-                raise IOError()
-
-        env['wsgi.input'] = IOErrorRaisingStream()
+        env['wsgi.input'] = ErrorRaisingStream(IOError)
         application = DummyApplication(conflicts=0, call_start_response=True)
         retry = self._makeOne(application, tries=4,
                               retryable=(self.ConflictError,))
@@ -265,23 +217,7 @@ class RetryTests(unittest.TestCase, CEBase):
     def test_io_timeout_error_chunked_read(self):
         env = self._makeEnv()
         env['CONTENT_LENGTH'] = str(1<<21)
-        class IOErrorRaisingStream:
-            def read(self, amt):
-                raise IOError()
-
-            def readline(self, amt):
-                raise IOError()
-
-            def readlines(self, amt):
-                raise IOError()
-
-            def __iter__(self):
-                return self
-
-            def next(self):
-                raise IOError()
-
-        env['wsgi.input'] = IOErrorRaisingStream()
+        env['wsgi.input'] = ErrorRaisingStream(IOError)
         application = DummyApplication(conflicts=0, call_start_response=True)
         retry = self._makeOne(application, tries=4,
                               retryable=(self.ConflictError,))
@@ -391,9 +327,17 @@ class DummyApplication(CEBase):
             self.wsgi_input = environ['wsgi.input'].read()
         return ['hello']
 
-def test_suite():
-    import sys
-    return unittest.findTestCases(sys.modules[__name__])
 
-if __name__ == '__main__':
-    unittest.main(defaultTest='test_suite')
+class ErrorRaisingStream:
+    def __init__(self, exc):
+        self.exc = exc
+    def read(self, amt): raise self.exc()
+
+    def readline(self, amt): raise self.exc()
+
+    def readlines(self, amt): raise self.exc()
+
+    def __iter__(self): return self
+
+    def next(self): raise self.exc()
+
