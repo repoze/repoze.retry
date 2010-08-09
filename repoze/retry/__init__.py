@@ -5,12 +5,14 @@ from tempfile import TemporaryFile
 import traceback
 from StringIO import StringIO
 
+# Avoid hard dependency on ZODB.
 try:
     from ZODB.POSException import ConflictError
 except ImportError:
     class ConflictError(Exception):
         pass
 
+# Avoid hard dependency on Zope2.
 try:
     from ZPublisher.Publish import Retry as RetryException
 except ImportError:

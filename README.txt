@@ -27,7 +27,7 @@ the ``tries`` count defaults to 3 times.
 
 Configuration via Paste
 -----------------------
-    
+
 If you want to use the default configuration, you can just include the
 filter in your application's pipeline.  Note that the filter should
 come before (to the "left") of the ``repoze.tm`` filter, your pipeline

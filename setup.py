@@ -38,4 +38,3 @@ setup(name='repoze.retry',
       retry = repoze.retry:make_retry
       """,
       )
-
