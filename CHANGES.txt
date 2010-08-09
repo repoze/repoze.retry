@@ -1,6 +1,8 @@
 After 0.9.4 (unreleased)
 ------------------------
 
+- Moved documentation to Sphinx.
+
 - Micro-optimization in lookup of 'wsgi.errors' from WSGI environ.
 
 0.9.4 (2010-03-01)
