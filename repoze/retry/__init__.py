@@ -88,10 +88,10 @@ class Retry:
                 app_iter = self.application(environ, replace_start_response)
             except self.retryable, e:
                 i += 1
-                if environ.get('wsgi.errors'):
-                    errors = environ['wsgi.errors']
+                errors = environ.get('wsgi.errors')
+                if errors is not None:
                     errors.write('repoze.retry retrying, count = %s\n' % i)
-                    traceback.print_exc(None, environ['wsgi.errors'])
+                    traceback.print_exc(None, errors)
                 if i < self.tries:
                     if new_wsgi_input is not None:
                         new_wsgi_input.seek(0)
