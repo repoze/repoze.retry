@@ -1,3 +1,9 @@
+After 1.0
+---------
+
+- Fix handling of case where environ['CONTENT_LENGTH'] is an empty string.
+
+
 1.0 (2010-08-09)
 ----------------
 

@@ -52,7 +52,10 @@ class Retry:
 
         if original_wsgi_input is not None:
             cl = environ.get('CONTENT_LENGTH', '0')
-            cl = int(cl)
+            if cl == '':
+                cl = 0
+            else:
+                cl = int(cl)
             if cl > self.highwater:
                 new_wsgi_input = environ['wsgi.input'] = TemporaryFile('w+b')
             else:

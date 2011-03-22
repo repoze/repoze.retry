@@ -117,13 +117,13 @@ class RetryTests(unittest.TestCase, CEBase):
         self.assertEqual(app2.called, 1)
 
     def test_wsgi_input_seeked_to_zero_on_conflict_withcontentlen(self):
+        from StringIO import StringIO
         application = DummyApplication(conflicts=3, call_start_response=True)
         retry = self._makeOne(application, tries=4,
                               retryable=(self.ConflictError,))
         env = self._makeEnv()
         data = 'x' * 1000
         env['CONTENT_LENGTH'] = str(len(data))
-        from StringIO import StringIO
         wsgi_input = StringIO(data)
         env['wsgi.input'] = wsgi_input
         unwind(retry(env, self._dummy_start_response))
@@ -132,13 +132,13 @@ class RetryTests(unittest.TestCase, CEBase):
         self.assertEqual(application.wsgi_input, data)
 
     def test_largechunksize(self):
+        from StringIO import StringIO
         application = DummyApplication(conflicts=3, call_start_response=True)
         retry = self._makeOne(application, tries=4,
                               retryable=(self.ConflictError,))
         env = self._makeEnv()
         data = 'x' * ((1<<20) + 1)
         env['CONTENT_LENGTH'] = str(len(data))
-        from StringIO import StringIO
         wsgi_input = StringIO(data)
         env['wsgi.input'] = wsgi_input
         unwind(retry(env, self._dummy_start_response))
@@ -147,13 +147,29 @@ class RetryTests(unittest.TestCase, CEBase):
         self.assertEqual(application.wsgi_input, data)
 
     def test_over_highwater(self):
+        from StringIO import StringIO
         application = DummyApplication(conflicts=3, call_start_response=True)
         retry = self._makeOne(application, tries=4,
                               retryable=(self.ConflictError, ), highwater=10)
         env = self._makeEnv()
         data = 'x' * 20
         env['CONTENT_LENGTH'] = str(len(data))
+        wsgi_input = StringIO(data)
+        env['wsgi.input'] = wsgi_input
+        unwind(retry(env, self._dummy_start_response))
+        self.assertEqual(application.called, 3)
+        self.failIf(env['wsgi.input'] is wsgi_input)
+        self.assertEqual(application.wsgi_input, data)
+
+    def test_empty_content_length(self):
+        # See http://bugs.repoze.org/issue171
         from StringIO import StringIO
+        application = DummyApplication(conflicts=3, call_start_response=True)
+        retry = self._makeOne(application, tries=4,
+                              retryable=(self.ConflictError, ), highwater=10)
+        env = self._makeEnv()
+        data = ''
+        env['CONTENT_LENGTH'] = ''
         wsgi_input = StringIO(data)
         env['wsgi.input'] = wsgi_input
         unwind(retry(env, self._dummy_start_response))
