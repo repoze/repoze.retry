@@ -6,5 +6,5 @@ This package implements a WSGI middleware filter which intercepts
 number of times.  If the request cannot be satisfied via retries, the
 exception is reraised.
 
-Please see the documentation in ``docs/index.rst``, which can be read onlin
+Please see the documentation in ``docs/index.rst``, which can be read online
 at http://docs.repoze.org/retry
