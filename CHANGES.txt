@@ -7,6 +7,8 @@ After 1.0
 
 - Fix handling of case where environ['CONTENT_LENGTH'] is an empty string.
 
+- Added possibility of tracebacks being written to wsgi.errors only after
+  the specified number of tries.
 
 1.0 (2010-08-09)
 ----------------
