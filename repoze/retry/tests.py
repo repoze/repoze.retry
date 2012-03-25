@@ -77,7 +77,7 @@ class RetryTests(unittest.TestCase, CEBase):
     def test_no_errors_written_on_first_retry_when_set(self):
         application = DummyApplication(conflicts=1, call_start_response=True)
         retry = self._makeOne(application, tries=3,
-                              tries_write_error=2,
+                              log_after_try_count=2,
                               retryable=(self.ConflictError,))
         env = self._makeEnvWithErrorsStream()
         unwind(retry(env, _faux_start_response))
@@ -87,7 +87,7 @@ class RetryTests(unittest.TestCase, CEBase):
     def test_errors_written_after_2nd_try_when_set(self):
         application = DummyApplication(conflicts=3, call_start_response=True)
         retry = self._makeOne(application, tries=4,
-                              tries_write_error=2,
+                              log_after_try_count=2,
                               retryable=(self.ConflictError,))
         env = self._makeEnvWithErrorsStream()
         unwind(retry(env, _faux_start_response))
@@ -327,7 +327,7 @@ class FactoryTests(unittest.TestCase, CEBase):
         self.failUnless(middleware.application is app)
         self.assertEqual(middleware.tries, 3)
         self.assertEqual(middleware.tries, 3)
-        self.assertEqual(middleware.tries_write_error, 1)
+        self.assertEqual(middleware.log_after_try_count, 1)
         self.assertEqual(middleware.retryable, (self.ConflictError, self.RetryException))
 
     def test_make_retry_override_tries(self):
@@ -341,9 +341,9 @@ class FactoryTests(unittest.TestCase, CEBase):
     def test_make_retry_override_tries_write_error(self):
         from repoze.retry import make_retry #FUT
         app = object()
-        middleware = make_retry(app, {}, tries_write_error=2)
+        middleware = make_retry(app, {}, log_after_try_count=2)
         self.failUnless(middleware.application is app)
-        self.assertEqual(middleware.tries_write_error, 2)
+        self.assertEqual(middleware.log_after_try_count, 2)
 
     def test_make_retry_override_retryable_one(self):
         from repoze.retry import make_retry #FUT

@@ -21,7 +21,7 @@ except ImportError:
 
 class Retry:
     def __init__(self, application, tries, retryable=None, highwater=2<<20,
-            tries_write_error=1):
+                 log_after_try_count=1):
         """ WSGI Middlware which retries a configurable set of exception types.
 
         o 'application' is the RHS in the WSGI "pipeline".
@@ -31,7 +31,7 @@ class Retry:
         o 'retryable' is a sequence of one or more exception types which,
           if raised, indicate that the request should be retried.
 
-        o 'tries_write_error' specified after how many tries the error is
+        o 'log_after_try_count' specified after how many tries the error is
           written to wsgi.errors
         """
         self.application = application
@@ -45,7 +45,7 @@ class Retry:
 
         self.retryable = tuple(retryable)
         self.highwater = highwater
-        self.tries_write_error = tries_write_error
+        self.log_after_try_count = log_after_try_count
 
     def __call__(self, environ, start_response):
         catch_response = []
@@ -97,7 +97,7 @@ class Retry:
             except self.retryable, e:
                 i += 1
                 errors = environ.get('wsgi.errors')
-                if errors is not None and i >= self.tries_write_error:
+                if errors is not None and i >= self.log_after_try_count:
                     errors.write('repoze.retry retrying, count = %s\n' % i)
                     traceback.print_exc(None, errors)
                 if i < self.tries:
@@ -129,9 +129,9 @@ def make_retry(app, global_conf, **local_conf):
     tries = int(local_conf.get('tries', 3))
     retryable = local_conf.get('retryable')
     highwater = local_conf.get('highwater', 2<<20)
-    tries_write_error = int(local_conf.get('tries_write_error', 1))
+    log_after_try_count = int(local_conf.get('log_after_try_count', 1))
     if retryable is not None:
         retryable = [EntryPoint.parse('x=%s' % x).load(False)
                       for x in retryable.split(' ')]
     return Retry(app, tries, retryable=retryable, highwater=highwater,
-        tries_write_error=tries_write_error)
+                 log_after_try_count=log_after_try_count)
