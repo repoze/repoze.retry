@@ -19,6 +19,16 @@ _MINIMAL_HEADERS = [('Content-Type', 'text/plain')]
 def _faux_start_response(result, headers, exc_info=None):
     pass
 
+def _get_wsgi_errors(env):
+    errors = env['wsgi.errors']
+    while 1:
+        # deal with lint test wrapping
+        if hasattr(errors, 'errors'):
+            errors = errors.errors
+        else:
+            break
+    return errors
+
 class RetryTests(unittest.TestCase, CEBase):
 
     _dummy_start_response_result = None
@@ -32,6 +42,12 @@ class RetryTests(unittest.TestCase, CEBase):
 
     def _makeEnv(self, **kw):
         return {}
+
+    def _makeEnvWithErrorsStream(self, **kw):
+        import StringIO
+        env = self._makeEnv(**kw)
+        env['wsgi.errors'] = StringIO.StringIO()
+        return env
 
     def test_retryable_is_not_sequence(self):
         application = DummyApplication(conflicts=1)
@@ -51,20 +67,41 @@ class RetryTests(unittest.TestCase, CEBase):
         application = DummyApplication(conflicts=5)
         retry = self._makeOne(application, tries=4,
                               retryable=(self.ConflictError,))
-        env = self._makeEnv()
-        import StringIO
-        env['wsgi.errors'] = StringIO.StringIO()
+        env = self._makeEnvWithErrorsStream()
         self.failUnlessRaises(self.ConflictError,
                               retry, env, _faux_start_response)
         self.assertEqual(application.called, 4)
-        errors = env['wsgi.errors']
-        while 1:
-            # deal with lint test wrapping
-            if hasattr(errors, 'errors'):
-                errors = errors.errors
-            else:
-                break
+        errors = _get_wsgi_errors(env)
         self.failUnless(errors.getvalue().startswith('repoze.retry retrying'))
+
+    def test_no_errors_written_on_first_retry_when_set(self):
+        application = DummyApplication(conflicts=1, call_start_response=True)
+        retry = self._makeOne(application, tries=3,
+                              tries_write_error=2,
+                              retryable=(self.ConflictError,))
+        env = self._makeEnvWithErrorsStream()
+        unwind(retry(env, _faux_start_response))
+        errors = _get_wsgi_errors(env)
+        self.failIf(errors.getvalue().startswith('repoze.retry retrying'))
+
+    def test_errors_written_after_2nd_try_when_set(self):
+        application = DummyApplication(conflicts=3, call_start_response=True)
+        retry = self._makeOne(application, tries=4,
+                              tries_write_error=2,
+                              retryable=(self.ConflictError,))
+        env = self._makeEnvWithErrorsStream()
+        unwind(retry(env, _faux_start_response))
+        errors = _get_wsgi_errors(env)
+        self.failUnless(errors.getvalue().startswith('repoze.retry retrying, count = 2'))
+
+    def test_errors_written_after_first_retry_by_default(self):
+        application = DummyApplication(conflicts=3, call_start_response=True)
+        retry = self._makeOne(application, tries=4,
+                              retryable=(self.ConflictError,))
+        env = self._makeEnvWithErrorsStream()
+        unwind(retry(env, _faux_start_response))
+        errors = _get_wsgi_errors(env)
+        self.failUnless(errors.getvalue().startswith('repoze.retry retrying, count = 1'))
 
     def _dummy_start_response(self, *arg):
         self._dummy_start_response_result = arg
@@ -272,6 +309,8 @@ class WSGIConformanceTests(RetryTests):
         env['QUERY_STRING'] = ''
         return env
 
+    _makeEnvWithErrorsStream = _makeEnv
+
 def unwind(result):
     # we need to close the app iter to shut lint up
     result2 = list(result)
@@ -288,6 +327,7 @@ class FactoryTests(unittest.TestCase, CEBase):
         self.failUnless(middleware.application is app)
         self.assertEqual(middleware.tries, 3)
         self.assertEqual(middleware.tries, 3)
+        self.assertEqual(middleware.tries_write_error, 1)
         self.assertEqual(middleware.retryable, (self.ConflictError, self.RetryException))
 
     def test_make_retry_override_tries(self):
@@ -297,6 +337,13 @@ class FactoryTests(unittest.TestCase, CEBase):
         self.failUnless(middleware.application is app)
         self.assertEqual(middleware.tries, 4)
         self.assertEqual(middleware.retryable, (self.ConflictError, self.RetryException))
+
+    def test_make_retry_override_tries_write_error(self):
+        from repoze.retry import make_retry #FUT
+        app = object()
+        middleware = make_retry(app, {}, tries_write_error=2)
+        self.failUnless(middleware.application is app)
+        self.assertEqual(middleware.tries_write_error, 2)
 
     def test_make_retry_override_retryable_one(self):
         from repoze.retry import make_retry #FUT
