@@ -1,4 +1,4 @@
-__version__ = '1.0'
+__version__ = '1.1'
 
 import os
 from setuptools import setup, find_packages
@@ -14,7 +14,7 @@ setup(name='repoze.retry',
       description='Middleware which implements a retryable exceptions',
       long_description=README + '\n\n' + CHANGES,
       classifiers=[
-        "Development Status :: 3 - Alpha",
+        "Development Status :: 5 - Stable",
         "Intended Audience :: Developers",
         "Programming Language :: Python",
         "Programming Language :: Python :: 2.6",
