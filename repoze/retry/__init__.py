@@ -119,10 +119,12 @@ class Retry:
                 return close_when_done_generator(written, app_iter)
 
 def close_when_done_generator(written, app_iter):
-    for chunk in itertools.chain(written, app_iter):
-        yield chunk
-    if hasattr(app_iter, 'close'):
-        app_iter.close()
+    try:
+        for chunk in itertools.chain(written, app_iter):
+            yield chunk
+    finally:
+        if hasattr(app_iter, 'close'):
+            app_iter.close()
 
 def make_retry(app, global_conf, **local_conf):
     from pkg_resources import EntryPoint

@@ -286,6 +286,20 @@ class RetryTests(unittest.TestCase, CEBase):
                          [('Content-Type', 'text/plain'),
                           ('Content-Length', str(len(msg)))])
 
+    def test_broken_pipe(self):
+        application = DummyApplication(conflicts=0, call_start_response=True)
+        application.iter_factory = BrokenPipeAppIter
+        retry = self._makeOne(application, tries=4,
+                              retryable=(self.ConflictError,))
+        app_iter = retry(self._makeEnv(), _faux_start_response)
+        try:
+            list(app_iter)
+        except:
+            pass
+        self.assertTrue(application.app_iter.closed)
+        app_iter.close() # suppress wsgi validator warning
+
+
 class WSGIConformanceTests(RetryTests):
 
     def setUp(self):
@@ -374,6 +388,8 @@ class AnotherRetryable(Exception):
     pass
 
 class DummyApplication(CEBase):
+    iter_factory = list
+
     def __init__(self, conflicts, call_start_response=False,
                  exception=None):
         self.called = 0
@@ -392,8 +408,23 @@ class DummyApplication(CEBase):
             raise self.exception
         if environ.get('wsgi.input'):
             self.wsgi_input = environ['wsgi.input'].read()
-        return ['hello']
+        self.app_iter = self.iter_factory(['hello'])
+        return self.app_iter
 
+class BrokenPipeAppIter(object):
+    closed = False
+
+    def __init__(self, l):
+        pass
+
+    def __iter__(self):
+        return self
+
+    def next(self):
+        raise Exception("Broken pipe")
+
+    def close(self):
+        self.closed = True
 
 class ErrorRaisingStream:
     def __init__(self, exc):
