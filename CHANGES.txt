@@ -1,11 +1,11 @@
 ``repoze.retry`` Changelog
 ==========================
 
-After 1.1
----------
+1.2 (2012-07-12)
+----------------
 
 - Make sure app_iter gets closed when there is a broken pipe or other exception
-  that interrupts the generator.
+  that interrupts the response generator.
 
 1.1 (2012-03-24)
 ----------------
