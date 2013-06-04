@@ -34,11 +34,7 @@ setup(name='repoze.retry',
       include_package_data=True,
       namespace_packages=['repoze'],
       zip_safe=False,
-      install_requires=['setuptools'],
       test_suite = "repoze.retry.tests",
-      tests_require=[
-        'wsgiref',
-      ],
       entry_points="""
       [paste.filter_app_factory]
       retry = repoze.retry:make_retry
