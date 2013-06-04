@@ -3,7 +3,7 @@ import itertools
 import socket
 from tempfile import TemporaryFile
 import traceback
-from StringIO import StringIO
+from io import BytesIO
 
 # Avoid hard dependency on ZODB.
 try:
@@ -62,7 +62,7 @@ class Retry:
             if cl > self.highwater:
                 new_wsgi_input = environ['wsgi.input'] = TemporaryFile('w+b')
             else:
-                new_wsgi_input = environ['wsgi.input'] = StringIO()
+                new_wsgi_input = environ['wsgi.input'] = BytesIO()
             rest = cl
             chunksize = 1<<20
             try:
@@ -94,7 +94,7 @@ class Retry:
         while 1:
             try:
                 app_iter = self.application(environ, replace_start_response)
-            except self.retryable, e:
+            except self.retryable as e:
                 i += 1
                 errors = environ.get('wsgi.errors')
                 if errors is not None and i >= self.log_after_try_count:
