@@ -200,8 +200,16 @@ class RetryTests(unittest.TestCase, CEBase):
         env['wsgi.input'] = wsgi_input
         unwind(retry(env, self._dummy_start_response))
         self.assertEqual(application.called, 3)
-        self.assertFalse(env['wsgi.input'] is wsgi_input)
+        istream = env['wsgi.input']
+        self.assertFalse(istream is wsgi_input)
         self.assertEqual(application.wsgi_input, data)
+        # Clean up tempfile, working around wsgiref wrappers
+        while 1:
+            next = getattr(istream, 'input', None)
+            if next is None:
+                break
+            istream = next
+        istream.close()
 
     def test_empty_content_length(self):
         # See http://bugs.repoze.org/issue171
