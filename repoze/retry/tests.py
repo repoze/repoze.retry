@@ -20,8 +20,9 @@ def _faux_start_response(result, headers, exc_info=None):
     pass
 
 def _get_wsgi_errors(env):
+    from io import StringIO
     errors = env['wsgi.errors']
-    while 1:
+    while not isinstance(errors, StringIO):
         # deal with lint test wrapping
         if hasattr(errors, 'errors'):
             errors = errors.errors
@@ -44,9 +45,12 @@ class RetryTests(unittest.TestCase, CEBase):
         return {}
 
     def _makeEnvWithErrorsStream(self, **kw):
-        import StringIO
+        try:
+            from StringIO import StringIO
+        except ImportError: #pragma NO COVER Py3k
+            from io import StringIO
         env = self._makeEnv(**kw)
-        env['wsgi.errors'] = StringIO.StringIO()
+        env['wsgi.errors'] = StringIO()
         return env
 
     def test_retryable_is_not_sequence(self):
@@ -126,7 +130,7 @@ class RetryTests(unittest.TestCase, CEBase):
         self.assertEqual(application.called, 1)
         self.assertEqual(self._dummy_start_response_result,
                          ('200 OK', _MINIMAL_HEADERS, None))
-        self.assertEqual(result, ['hello'])
+        self.assertEqual(result, [b'hello'])
 
     def test_alternate_retryble_exception(self):
         application = DummyApplication(conflicts=1, exception=Retryable,
@@ -134,7 +138,7 @@ class RetryTests(unittest.TestCase, CEBase):
         retry = self._makeOne(application, tries=4, retryable=(Retryable,))
         # this test generates a __del__ error
         result = unwind(retry(self._makeEnv(), _faux_start_response))
-        self.assertEqual(result, ['hello'])
+        self.assertEqual(result, [b'hello'])
         self.assertEqual(application.called, 1)
 
     def test_alternate_retryble_exceptions(self):
@@ -146,24 +150,24 @@ class RetryTests(unittest.TestCase, CEBase):
         retry1 = self._makeOne(app1, tries=4,
                                retryable=(self.ConflictError, Retryable,))
         result = unwind(retry1(self._makeEnv(), _faux_start_response))
-        self.assertEqual(result, ['hello'])
+        self.assertEqual(result, [b'hello'])
         self.assertEqual(app1.called, 1)
 
         retry2 = self._makeOne(app2, tries=4,
                                retryable=(self.ConflictError, Retryable,))
         result = unwind(retry2(self._makeEnv(), _faux_start_response))
-        self.assertEqual(result, ['hello'])
+        self.assertEqual(result, [b'hello'])
         self.assertEqual(app2.called, 1)
 
     def test_wsgi_input_seeked_to_zero_on_conflict_withcontentlen(self):
-        from StringIO import StringIO
+        from io import BytesIO
         application = DummyApplication(conflicts=3, call_start_response=True)
         retry = self._makeOne(application, tries=4,
                               retryable=(self.ConflictError,))
         env = self._makeEnv()
-        data = 'x' * 1000
+        data = b'x' * 1000
         env['CONTENT_LENGTH'] = str(len(data))
-        wsgi_input = StringIO(data)
+        wsgi_input = BytesIO(data)
         env['wsgi.input'] = wsgi_input
         unwind(retry(env, self._dummy_start_response))
         self.assertEqual(application.called, 3)
@@ -171,14 +175,14 @@ class RetryTests(unittest.TestCase, CEBase):
         self.assertEqual(application.wsgi_input, data)
 
     def test_largechunksize(self):
-        from StringIO import StringIO
+        from io import BytesIO
         application = DummyApplication(conflicts=3, call_start_response=True)
         retry = self._makeOne(application, tries=4,
                               retryable=(self.ConflictError,))
         env = self._makeEnv()
-        data = 'x' * ((1<<20) + 1)
+        data = b'x' * ((1<<20) + 1)
         env['CONTENT_LENGTH'] = str(len(data))
-        wsgi_input = StringIO(data)
+        wsgi_input = BytesIO(data)
         env['wsgi.input'] = wsgi_input
         unwind(retry(env, self._dummy_start_response))
         self.assertEqual(application.called, 3)
@@ -186,14 +190,14 @@ class RetryTests(unittest.TestCase, CEBase):
         self.assertEqual(application.wsgi_input, data)
 
     def test_over_highwater(self):
-        from StringIO import StringIO
+        from io import BytesIO
         application = DummyApplication(conflicts=3, call_start_response=True)
         retry = self._makeOne(application, tries=4,
                               retryable=(self.ConflictError, ), highwater=10)
         env = self._makeEnv()
-        data = 'x' * 20
+        data = b'x' * 20
         env['CONTENT_LENGTH'] = str(len(data))
-        wsgi_input = StringIO(data)
+        wsgi_input = BytesIO(data)
         env['wsgi.input'] = wsgi_input
         unwind(retry(env, self._dummy_start_response))
         self.assertEqual(application.called, 3)
@@ -202,14 +206,14 @@ class RetryTests(unittest.TestCase, CEBase):
 
     def test_empty_content_length(self):
         # See http://bugs.repoze.org/issue171
-        from StringIO import StringIO
+        from io import BytesIO
         application = DummyApplication(conflicts=3, call_start_response=True)
         retry = self._makeOne(application, tries=4,
                               retryable=(self.ConflictError, ), highwater=10)
         env = self._makeEnv()
-        data = ''
+        data = b''
         env['CONTENT_LENGTH'] = ''
-        wsgi_input = StringIO(data)
+        wsgi_input = BytesIO(data)
         env['wsgi.input'] = wsgi_input
         unwind(retry(env, self._dummy_start_response))
         self.assertEqual(application.called, 3)
@@ -226,7 +230,7 @@ class RetryTests(unittest.TestCase, CEBase):
                               retryable=(self.ConflictError,))
         result = unwind(retry(env, self._dummy_start_response))
         self.assertEqual(application.called, 0)
-        msg = 'Not enough data in request or socket error'
+        msg = b'Not enough data in request or socket error'
         self.assertEqual(result, [msg])
         self.assertEqual(self._dummy_start_response_result[0],
                          '400 Bad Request')
@@ -244,7 +248,7 @@ class RetryTests(unittest.TestCase, CEBase):
                               retryable=(self.ConflictError,))
         result = unwind(retry(env, self._dummy_start_response))
         self.assertEqual(application.called, 0)
-        msg = 'Not enough data in request or socket error'
+        msg = b'Not enough data in request or socket error'
         self.assertEqual(result, [msg])
         self.assertEqual(self._dummy_start_response_result[0],
                          '400 Bad Request')
@@ -261,7 +265,7 @@ class RetryTests(unittest.TestCase, CEBase):
                               retryable=(self.ConflictError,))
         result = unwind(retry(env, self._dummy_start_response))
         self.assertEqual(application.called, 0)
-        msg = 'Not enough data in request or socket error'
+        msg = b'Not enough data in request or socket error'
         self.assertEqual(result, [msg])
         self.assertEqual(self._dummy_start_response_result[0],
                          '400 Bad Request')
@@ -278,7 +282,7 @@ class RetryTests(unittest.TestCase, CEBase):
                               retryable=(self.ConflictError,))
         result = unwind(retry(env, self._dummy_start_response))
         self.assertEqual(application.called, 0)
-        msg = 'Not enough data in request or socket error'
+        msg = b'Not enough data in request or socket error'
         self.assertEqual(result, [msg])
         self.assertEqual(self._dummy_start_response_result[0],
                          '400 Bad Request')
@@ -406,9 +410,15 @@ class DummyApplication(CEBase):
         if self.called < self.conflicts:
             self.called += 1
             raise self.exception
-        if environ.get('wsgi.input'):
-            self.wsgi_input = environ['wsgi.input'].read()
-        self.app_iter = self.iter_factory(['hello'])
+        istream = environ.get('wsgi.input')
+        if istream is not None:
+            chunks = []
+            chunk = istream.read(1024)
+            while chunk:
+                chunks.append(chunk)
+                chunk = istream.read(1024)
+            self.wsgi_input = b''.join(chunks)
+        self.app_iter = self.iter_factory([b'hello'])
         return self.app_iter
 
 class BrokenPipeAppIter(object):
@@ -422,6 +432,7 @@ class BrokenPipeAppIter(object):
 
     def next(self):
         raise Exception("Broken pipe")
+    __next__ = next #Py3k
 
     def close(self):
         self.closed = True

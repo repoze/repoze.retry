@@ -77,7 +77,7 @@ class Retry:
             except (socket.error, IOError):
                 # Different wsgi servers will generate either socket.error or
                 # IOError if there is a problem reading POST data from browser.
-                msg = 'Not enough data in request or socket error'
+                msg = b'Not enough data in request or socket error'
                 start_response('400 Bad Request', [
                     ('Content-Type', 'text/plain'),
                     ('Content-Length', str(len(msg))),
