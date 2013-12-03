@@ -4,6 +4,7 @@ import socket
 from tempfile import TemporaryFile
 import traceback
 from io import BytesIO
+from time import sleep
 
 # Avoid hard dependency on ZODB.
 try:
@@ -21,15 +22,19 @@ except ImportError:
 
 class Retry:
     def __init__(self, application, tries, retryable=None, highwater=2<<20,
-                 log_after_try_count=1):
+                 log_after_try_count=1, delay=0, delay_factor=2):
         """ WSGI Middlware which retries a configurable set of exception types.
 
         o 'application' is the RHS in the WSGI "pipeline".
 
-        o 'retries' is the maximun number of times to retry a request.
+        o 'retries' is the maximum number of times to retry a request.
 
         o 'retryable' is a sequence of one or more exception types which,
           if raised, indicate that the request should be retried.
+
+        o 'delay' is the delay in seconds between requests (default: no delay)
+
+        o 'delay_factor' is the exponential back-off factor (default: 2)
 
         o 'log_after_try_count' specified after how many tries the error is
           written to wsgi.errors
@@ -45,6 +50,8 @@ class Retry:
 
         self.retryable = tuple(retryable)
         self.highwater = highwater
+        self.delay = delay
+        self.delay_factor = delay_factor
         self.log_after_try_count = log_after_try_count
 
     def __call__(self, environ, start_response):
@@ -92,6 +99,7 @@ class Retry:
 
         i = 0
         while 1:
+            delay = self.delay
             try:
                 app_iter = self.application(environ, replace_start_response)
             except self.retryable as e:
@@ -103,6 +111,9 @@ class Retry:
                 if i < self.tries:
                     if new_wsgi_input is not None:
                         new_wsgi_input.seek(0)
+                    if delay:
+                        sleep(delay)
+                        delay *= self.delay_factor
                     catch_response[:] = []
                     continue
                 if catch_response:
@@ -131,9 +142,12 @@ def make_retry(app, global_conf, **local_conf):
     tries = int(local_conf.get('tries', 3))
     retryable = local_conf.get('retryable')
     highwater = local_conf.get('highwater', 2<<20)
+    delay = local_conf.get('delay', 0)
+    delay_factor = local_conf.get('delay_factor', 2)
     log_after_try_count = int(local_conf.get('log_after_try_count', 1))
     if retryable is not None:
         retryable = [EntryPoint.parse('x=%s' % x).load(False)
                       for x in retryable.split(' ')]
     return Retry(app, tries, retryable=retryable, highwater=highwater,
-                 log_after_try_count=log_after_try_count)
+                 log_after_try_count=log_after_try_count,
+                 delay=delay, delay_factor=delay_factor)
