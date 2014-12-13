@@ -1,6 +1,11 @@
 ``repoze.retry`` Changelog
 ==========================
 
+Unreleased
+----------
+
+- Add support for Python 3.4 and PyPy3.
+
 1.3 (2013-10-15)
 ----------------
 
