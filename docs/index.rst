@@ -110,6 +110,6 @@ References
 
 .. [#] http://en.wikipedia.org/wiki/Optimistic_concurrency_control
 
-.. [#] http://zodb.org/documentation/articles/ZODB-overview.html#transactions
+.. [#] http://www.zodb.org/en/latest/documentation/guide/transactions.html
 
-.. [#] http://zodb.org/documentation/articles/ZODB2.html#resolving-conflicts
+.. [#] http://www.zodb.org/en/latest/documentation/articles/ZODB2.html#resolving-conflicts
