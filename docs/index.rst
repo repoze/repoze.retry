@@ -99,9 +99,10 @@ The repoze developers hang out in the
 Email discussion of the filter's development takes place on the
 `repoze-dev mailing list <http://lists.repoze.org/listinfo/repoze-dev>`_.
 
-Visit http://bugs.repoze.org/ to report bugs.
+Visit https://github.com/repoze/repoze.retry/issues to report bugs.
 
-Visit http://svn.repoze.org/ to check out development or tagged versions.
+Visit http://github.com/repoze/repoze.retry/ to check out development
+or tagged versions.
 
 
 References
