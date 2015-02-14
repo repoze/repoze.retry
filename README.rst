@@ -1,6 +1,10 @@
 ``repoze.retry`` README
 =======================
 
+.. image:: https://pypip.in/version/repoze.retry/badge.svg?style=flat
+    :target: https://pypi.python.org/pypi/repoze.retry/
+    :alt: Latest Version
+
 .. image:: https://travis-ci.org/repoze/repoze.retry.png?branch=master
         :target: https://travis-ci.org/repoze/repoze.retry
 
