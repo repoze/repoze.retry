@@ -6,7 +6,7 @@
 
 - Add support for testing under Travis.
 
-- Add support for Python 3.4 and PyPy3.
+- Add support for Python 3.4 and 3.5 and PyPy3.
 
 - Drop support for Python 2.6 and 3.2.
 
