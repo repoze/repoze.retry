@@ -11,3 +11,4 @@ nosetests.xml
 venv
 coverage.xml
 docs/_build/
+build/
