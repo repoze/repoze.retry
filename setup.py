@@ -1,5 +1,3 @@
-__version__ = '1.3'
-
 import os
 from setuptools import setup, find_packages
 
@@ -16,7 +14,7 @@ CHANGES = _read_file('CHANGES.rst')
 testing_extras = ['nose', 'coverage']
 
 setup(name='repoze.retry',
-      version=__version__,
+      version='1.4.dev0',
       description='Middleware which implements a retryable exceptions',
       long_description=README + '\n\n' + CHANGES,
       classifiers=[
@@ -24,10 +22,8 @@ setup(name='repoze.retry',
         "Intended Audience :: Developers",
         "Programming Language :: Python",
         "Programming Language :: Python :: 2",
-        "Programming Language :: Python :: 2.6",
         "Programming Language :: Python :: 2.7",
         "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.2",
         "Programming Language :: Python :: 3.3",
         "Programming Language :: Python :: 3.4",
         "Programming Language :: Python :: Implementation :: CPython",
