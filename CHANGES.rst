@@ -1,7 +1,7 @@
 ``repoze.retry`` Changelog
 ==========================
 
-1.4 (unreleased)
+1.4 (2016-06-03)
 ----------------
 
 - Add support for testing under Travis.
