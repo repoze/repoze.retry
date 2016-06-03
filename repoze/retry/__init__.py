@@ -133,7 +133,7 @@ def make_retry(app, global_conf, **local_conf):
     highwater = local_conf.get('highwater', 2<<20)
     log_after_try_count = int(local_conf.get('log_after_try_count', 1))
     if retryable is not None:
-        retryable = [EntryPoint.parse('x=%s' % x).load(False)
+        retryable = [EntryPoint.parse('x=%s' % x).resolve()
                       for x in retryable.split(' ')]
     return Retry(app, tries, retryable=retryable, highwater=highwater,
                  log_after_try_count=log_after_try_count)
