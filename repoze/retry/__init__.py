@@ -59,6 +59,7 @@ class Retry:
         written = []
         original_wsgi_input = environ.get('wsgi.input')
         new_wsgi_input = None
+        delay = self.delay
 
         if original_wsgi_input is not None:
             cl = environ.get('CONTENT_LENGTH', '0')
@@ -99,7 +100,6 @@ class Retry:
 
         i = 0
         while 1:
-            delay = self.delay
             try:
                 app_iter = self.application(environ, replace_start_response)
             except self.retryable as e:
