@@ -6,6 +6,13 @@ import traceback
 from io import BytesIO
 from time import sleep
 
+# Avoid hard dependency on transaction.
+try:
+    from transaction.interfaces import TransientError
+except ImportError:
+    class TransientError(Exception):
+        pass
+
 # Avoid hard dependency on ZODB.
 try:
     from ZODB.POSException import ConflictError
@@ -43,7 +50,7 @@ class Retry:
         self.tries = tries
 
         if retryable is None:
-            retryable = (ConflictError, RetryException,)
+            retryable = (TransientError, ConflictError, RetryException,)
 
         if not isinstance(retryable, (list, tuple)):
             retryable = [retryable]

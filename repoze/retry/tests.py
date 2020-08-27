@@ -1,5 +1,27 @@
 import unittest
 
+try:
+    import transaction
+except ImportError:
+    _HAVE_TRANSACTION = False
+else:
+    _HAVE_TRANSACTION = True
+
+try:
+    import ZODB
+except ImportError:
+    _HAVE_ZODB = False
+else:
+    _HAVE_ZODB = True
+
+try:
+    import ZPublisher
+except ImportError:
+    _HAVE_ZPUBLISHER = False
+else:
+    _HAVE_ZPUBLISHER = True
+
+
 class CEBase:
 
     def _getConflictError(self):
@@ -52,6 +74,30 @@ class RetryTests(unittest.TestCase, CEBase):
         env = self._makeEnv(**kw)
         env['wsgi.errors'] = StringIO()
         return env
+
+    @unittest.skipUnless(_HAVE_TRANSACTION, "Needs transaction")
+    def test_ctor_defaults_w_transaction(self):
+        from transaction.interfaces import TransientError
+        application = DummyApplication(conflicts=0)
+        retry = self._makeOne(application, tries=4)
+        if hasattr(retry, 'retryable'):
+            self.assertIn(TransientError, retry.retryable)
+
+    @unittest.skipUnless(_HAVE_ZODB, "Needs ZODB")
+    def test_ctor_defaults_w_zodb(self):
+        from ZODB.POSException import ConflictError
+        application = DummyApplication(conflicts=0)
+        retry = self._makeOne(application, tries=4)
+        if hasattr(retry, 'retryable'):
+            self.assertIn(ConflictError, retry.retryable)
+
+    @unittest.skipUnless(_HAVE_ZPUBLISHER, "Needs ZPublisher")
+    def test_ctor_defaults_w_zpublisher(self):
+        from ZPublisher.Publish import Retry as RetryException
+        application = DummyApplication(conflicts=0)
+        retry = self._makeOne(application, tries=4)
+        if hasattr(retry, 'retryable'):
+            self.assertIn(RetryException, retry.retryable)
 
     def test_retryable_is_not_sequence(self):
         application = DummyApplication(conflicts=1)
@@ -367,8 +413,13 @@ class FactoryTests(unittest.TestCase, CEBase):
         self.assertEqual(middleware.tries, 3)
         self.assertEqual(middleware.tries, 3)
         self.assertEqual(middleware.log_after_try_count, 1)
-        self.assertEqual(middleware.retryable,
-                         (self.ConflictError, self.RetryException))
+        expected = [self.ConflictError, self.RetryException]
+
+        if _HAVE_TRANSACTION:
+            from transaction.interfaces import TransientError
+            expected.insert(0, TransientError)
+
+        self.assertEqual(middleware.retryable, tuple(expected))
 
     def test_make_retry_override_tries(self):
         from repoze.retry import make_retry #FUT
@@ -376,8 +427,13 @@ class FactoryTests(unittest.TestCase, CEBase):
         middleware = make_retry(app, {}, tries=4)
         self.assertTrue(middleware.application is app)
         self.assertEqual(middleware.tries, 4)
-        self.assertEqual(middleware.retryable,
-                         (self.ConflictError, self.RetryException))
+        expected = [self.ConflictError, self.RetryException]
+
+        if _HAVE_TRANSACTION:
+            from transaction.interfaces import TransientError
+            expected.insert(0, TransientError)
+
+        self.assertEqual(middleware.retryable, tuple(expected))
 
     def test_make_retry_override_tries_write_error(self):
         from repoze.retry import make_retry #FUT
