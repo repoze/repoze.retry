@@ -10,6 +10,8 @@
 
 - Sleep for delay on retrying using the delay parameter.
 
+- Retry ``transaction.interfaces.TransientError`` (if importable) by default.
+
 1.4 (2016-06-03)
 ----------------
 
