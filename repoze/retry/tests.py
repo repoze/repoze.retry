@@ -24,6 +24,12 @@ else:
 
 class CEBase:
 
+    def _getTransientError(self):
+        from repoze.retry import TransientError
+        return TransientError
+
+    TransientError = property(_getTransientError,)
+
     def _getConflictError(self):
         from repoze.retry import ConflictError
         return ConflictError
@@ -413,12 +419,11 @@ class FactoryTests(unittest.TestCase, CEBase):
         self.assertEqual(middleware.tries, 3)
         self.assertEqual(middleware.tries, 3)
         self.assertEqual(middleware.log_after_try_count, 1)
-        expected = [self.ConflictError, self.RetryException]
-
-        if _HAVE_TRANSACTION:
-            from transaction.interfaces import TransientError
-            expected.insert(0, TransientError)
-
+        expected = [
+            self.TransientError,
+            self.ConflictError,
+            self.RetryException,
+        ]
         self.assertEqual(middleware.retryable, tuple(expected))
 
     def test_make_retry_override_tries(self):
@@ -427,12 +432,11 @@ class FactoryTests(unittest.TestCase, CEBase):
         middleware = make_retry(app, {}, tries=4)
         self.assertTrue(middleware.application is app)
         self.assertEqual(middleware.tries, 4)
-        expected = [self.ConflictError, self.RetryException]
-
-        if _HAVE_TRANSACTION:
-            from transaction.interfaces import TransientError
-            expected.insert(0, TransientError)
-
+        expected = [
+            self.TransientError,
+            self.ConflictError,
+            self.RetryException,
+        ]
         self.assertEqual(middleware.retryable, tuple(expected))
 
     def test_make_retry_override_tries_write_error(self):
