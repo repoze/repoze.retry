@@ -8,6 +8,8 @@
 
 - Drop support for Python 3.3 and 3.4.
 
+- Sleep for delay on retrying using the delay parameter.
+
 1.4 (2016-06-03)
 ----------------
 

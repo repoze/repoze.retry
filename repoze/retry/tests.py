@@ -310,6 +310,18 @@ class RetryTests(unittest.TestCase, CEBase):
         self.assertTrue(application.app_iter.closed)
         app_iter.close() # suppress wsgi validator warning
 
+    def test_delay(self):
+        with MockSleep() as dummy_sleep:
+            application = DummyApplication(conflicts=3, call_start_response=True)
+            retry = self._makeOne(application, tries=4,
+                                  retryable=(self.ConflictError,),
+                                  delay=1,
+                                  delay_factor=2)
+            env = self._makeEnvWithErrorsStream()
+            unwind(retry(env, _faux_start_response))
+            self.assertEqual(dummy_sleep.called, 3)
+            self.assertEqual(dummy_sleep.delays, [1, 2, 4])
+
 
 class WSGIConformanceTests(RetryTests):
 
@@ -457,3 +469,28 @@ class ErrorRaisingStream:
 
     def next(self): raise self.exc()
 
+
+class DummySleep(object):
+    def __init__(self):
+        self.called = 0
+        self.delays = []
+
+    def __call__(self, sleep_time):
+        self.called += 1
+        self.delays.append(sleep_time)
+
+
+class MockSleep(object):
+    def __init__(self):
+        self.dummy_sleep = DummySleep()
+        self._sleep = None
+
+    def __enter__(self):
+        import repoze.retry
+        self._sleep = repoze.retry.sleep
+        repoze.retry.sleep = self.dummy_sleep
+        return self.dummy_sleep
+
+    def __exit__(self, *exc):
+        import repoze.retry
+        repoze.retry.sleep = self._sleep

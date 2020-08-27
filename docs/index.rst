@@ -68,7 +68,8 @@ application's pipeline.
         zope2
 
 If you want to override the defaults, e.g. to change the number of retries,
-or the exceptions which will be retried, configure the filter in a separate
+or the exceptions which will be retried, or to add an exponential back-off
+in case the server is overloaded, configure the filter in a separate
 section:
 
 .. code-block:: ini
@@ -76,6 +77,8 @@ section:
    [filter:retry]
    use = egg:repoze.retry
    tries = 2
+   delay = 0.2
+   delay_factor = 1.5
    retryable = mypackage.exceptions:SomeRetryableException
 
 and then use it in your pipeline:
