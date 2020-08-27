@@ -26,7 +26,7 @@ def _get_wsgi_errors(env):
         # deal with lint test wrapping
         if hasattr(errors, 'errors'):
             errors = errors.errors
-        else:
+        else:  # pragma: NO COVER
             break
     return errors
 
