@@ -14,7 +14,7 @@ CHANGES = _read_file('CHANGES.rst')
 testing_extras = ['nose', 'coverage']
 
 setup(name='repoze.retry',
-      version='1.5.dev0',
+      version='1.5',
       description='Middleware which implements a retryable exceptions',
       long_description=README + '\n\n' + CHANGES,
       classifiers=[

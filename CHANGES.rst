@@ -1,14 +1,14 @@
 ``repoze.retry`` Changelog
 ==========================
 
-1.5 (unreleased)
+1.5 (2020-08-27)
 ----------------
 
 - Add support for Python 3.6, 3.7, and 3.8.
 
 - Drop support for Python 3.3 and 3.4.
 
-- Sleep for delay on retrying using the delay parameter.
+- Add configurable delay-with-backof when retrying.
 
 - Retry ``transaction.interfaces.TransientError`` (if importable) by default.
 
