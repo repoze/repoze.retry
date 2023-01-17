@@ -1,8 +1,8 @@
 ``repoze.retry`` Changelog
 ==========================
 
-2.0 (unreleased)
-----------------
+2.0b1 (unreleased)
+------------------
 
 - Add support for Python 3.9, 3.10, and 3.11.
 
