@@ -12,6 +12,8 @@
 
 - Add Github Actions workflow to exercise unit tests / coverage.
 
+- Test Github Actions workflow to exercise unit tests / coverage.
+
 1.5 (2020-08-27)
 ----------------
 
