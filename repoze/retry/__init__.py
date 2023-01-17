@@ -22,7 +22,7 @@ except ImportError:
 
 # Avoid hard dependency on Zope2.
 try:
-    from ZPublisher.Publish import Retry as RetryException
+    from ZPublisher import Retry as RetryException
 except ImportError:
     class RetryException(Exception):
         pass

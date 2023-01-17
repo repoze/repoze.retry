@@ -99,7 +99,7 @@ class RetryTests(unittest.TestCase, CEBase):
 
     @unittest.skipUnless(_HAVE_ZPUBLISHER, "Needs ZPublisher")
     def test_ctor_defaults_w_zpublisher(self):
-        from ZPublisher.Publish import Retry as RetryException
+        from ZPublisher import Retry as RetryException
         application = DummyApplication(conflicts=0)
         retry = self._makeOne(application, tries=4)
         if hasattr(retry, 'retryable'):
