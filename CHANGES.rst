@@ -1,10 +1,14 @@
 ``repoze.retry`` Changelog
 ==========================
 
-1.6 (unreleased)
+2.0 (unreleased)
 ----------------
 
-- TBD
+- Add support for Python 3.9, 3.10, and 3.11.
+
+- Drop support for Python 2.7, 3.5, and 3.6.
+
+- Switch to use 'pytest' for running unit tests.
 
 1.5 (2020-08-27)
 ----------------

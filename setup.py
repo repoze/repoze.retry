@@ -11,23 +11,21 @@ def _read_file(filename):
 README = _read_file('README.rst')
 CHANGES = _read_file('CHANGES.rst')
 
-testing_extras = ['nose', 'coverage']
 
 setup(name='repoze.retry',
-      version='1.6.dev0',
+      version='2.0.dev0',
       description='Middleware which implements a retryable exceptions',
       long_description=README + '\n\n' + CHANGES,
       classifiers=[
         "Development Status :: 5 - Production/Stable",
         "Intended Audience :: Developers",
         "Programming Language :: Python",
-        "Programming Language :: Python :: 2",
-        "Programming Language :: Python :: 2.7",
         "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.5",
-        "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3.9",
+        "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11",
         "Programming Language :: Python :: Implementation :: CPython",
         "Programming Language :: Python :: Implementation :: PyPy",
         "Topic :: Internet :: WWW/HTTP",
@@ -48,7 +46,4 @@ setup(name='repoze.retry',
       [paste.filter_app_factory]
       retry = repoze.retry:make_retry
       """,
-      extras_require = {
-        'testing': testing_extras,
-      }
 )
