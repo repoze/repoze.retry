@@ -10,6 +10,8 @@
 
 - Switch to use 'pytest' for running unit tests.
 
+- Add Github Actions workflow to exercise unit tests / coverage.
+
 1.5 (2020-08-27)
 ----------------
 
