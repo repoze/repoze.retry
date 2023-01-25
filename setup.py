@@ -13,7 +13,7 @@ CHANGES = _read_file('CHANGES.rst')
 
 
 setup(name='repoze.retry',
-      version='2.0b1',
+      version='2.0',
       description='Middleware which implements a retryable exceptions',
       long_description=README + '\n\n' + CHANGES,
       classifiers=[
