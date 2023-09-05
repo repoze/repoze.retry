@@ -183,6 +183,16 @@ class RetryTests(unittest.TestCase, CEBase):
                          ('200 OK', _MINIMAL_HEADERS, None))
         self.assertEqual(result, [b'hello'])
 
+    def test_conflict_not_raised_start_response_called_at_first_chunk(self):
+        application = LazyApplication(conflicts=1)
+        retry = self._makeOne(application, tries=4,
+                              retryable=(self.ConflictError,))
+        result = unwind(retry(self._makeEnv(), self._dummy_start_response))
+        self.assertEqual(application.called, 1)
+        self.assertEqual(self._dummy_start_response_result,
+                         ('200 OK', _MINIMAL_HEADERS, None))
+        self.assertEqual(result, [b'hello'])
+
     def test_alternate_retryble_exception(self):
         application = DummyApplication(conflicts=1, exception=Retryable,
                                        call_start_response=True)
@@ -499,6 +509,23 @@ class DummyApplication(CEBase):
             self.wsgi_input = b''.join(chunks)
         self.app_iter = self.iter_factory([b'hello'])
         return self.app_iter
+
+class LazyApplication(DummyApplication):
+    def __call__(self, environ, start_response):
+        if self.called < self.conflicts:
+            self.called += 1
+            raise self.exception
+        istream = environ.get('wsgi.input')
+        if istream is not None:
+            chunks = []
+            chunk = istream.read(1024)
+            while chunk:
+                chunks.append(chunk)
+                chunk = istream.read(1024)
+            self.wsgi_input = b''.join(chunks)
+        if self.call_start_response:
+            start_response('200 OK', _MINIMAL_HEADERS)
+        yield b'hello'
 
 class BrokenPipeAppIter(object):
     closed = False
