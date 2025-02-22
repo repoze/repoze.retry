@@ -60,12 +60,6 @@ jobs:
       run: |
         tox -e w_deps
 
-    - name: Upload coverage results
-      uses: actions/upload-artifact@v4
-      with:
-        name: coverage-artifacts
-        path: .coverage.w_deps
-
   report-coverage:
     name: cover
     runs-on: ubuntu-latest
