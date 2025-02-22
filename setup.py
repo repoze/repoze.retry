@@ -16,6 +16,7 @@ setup(name='repoze.retry',
       version='2.0',
       description='Middleware which implements a retryable exceptions',
       long_description=README + '\n\n' + CHANGES,
+      long_description_content_type="text/x-rst",
       classifiers=[
         "Development Status :: 5 - Production/Stable",
         "Intended Audience :: Developers",
