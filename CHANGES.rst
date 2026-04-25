@@ -1,6 +1,21 @@
 ``repoze.retry`` Changelog
 ==========================
 
+2.2 (unreleased)
+----------------
+
+- Drop runtime use of ``pkg_resources`` to parse "retryables".
+
+- Drop ``pkg_resources`` namespace support.
+
+- Move package metadata to ``pyproject.toml``.
+
+- Move to ``src/`` layout, with ``tests/unit/`` at top level.
+
+- Add support for Python 3.14.
+
+- Drop support for Python 3.9.
+
 2.1 (2025-02-22)
 ----------------
 
