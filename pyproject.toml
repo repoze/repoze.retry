@@ -1,0 +1,77 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[project]
+name = "repoze-retry"
+version = "2.2dev0"
+description = "WSGI middleware implementing retryable exceptions"
+readme = {file = "README.rst", content-type = "text/x-rst"}
+requires-python = ">=3.10"
+dependencies = []
+
+authors = [
+  {name = "Tres Seaver, Agendaless Consulting", email = "tseaver@agendaless.com"},
+]
+license = "LicenseRef-Repoze-BSD-derived"
+license-files = ["LICENSE.txt"]
+
+keywords = ["web", "wsgi", "middleware", "retry"]
+classifiers = [
+    "Development Status :: 6 - Mature",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Programming Language :: Python :: Implementation :: CPython",
+    "Programming Language :: Python :: Implementation :: PyPy",
+    "Operating System :: OS Independent",
+    "Topic :: Internet :: WWW/HTTP",
+    "Topic :: Internet :: WWW/HTTP :: WSGI",
+    "Topic :: Internet :: WWW/HTTP :: WSGI :: Middleware",
+]
+# Not supported by 'setuptools':
+# import-namespaces = ["repoze"]
+# import-names = ["repoze.retry"]
+
+[project.urls]
+Repository = "https://github.com/repoze/retry"
+Issues = "https://github.com/repoze/retry/issues"
+Documentation = "https://repozeretry.readthedocs.io/en/stable/index.html"
+Changelog = "https://github.com/repoze/repoze.retry/blob/master/CHANGES.rst"
+
+[project.entry-points."paste.filter_app_factory"]
+retry = "repoze.retry:make_retry"
+
+[dependency-groups]
+dev = [
+    "tox",
+    "pytest",
+    "pytest-cov",
+    "ruff",
+    "check-manifest",
+]
+docs = [
+    "sphinx",
+]
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.pytest.ini_options]
+minversion = "6.0"
+python_files = "test_*.py"
+testpaths = [ "tests" ]
+
+[tool.coverage.run]
+omit = []
+
+[tool.coverage.report]
+show_missing = true

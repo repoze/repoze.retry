@@ -1,9 +1,10 @@
 # repoze retry-on-conflict-error behavior
+import importlib
 import itertools
 import socket
-from tempfile import TemporaryFile
 import traceback
 from io import BytesIO
+from tempfile import TemporaryFile
 from time import sleep
 
 # Avoid hard dependency on transaction.
@@ -144,8 +145,13 @@ def close_when_done_generator(written, app_iter):
         if hasattr(app_iter, 'close'):
             app_iter.close()
 
+def _quasi_entrypoint(dotted_with_colon):
+    dotted, name = dotted_with_colon.rsplit(":", 1)
+    module = importlib.import_module(dotted)
+    return getattr(module, name)
+
+
 def make_retry(app, global_conf, **local_conf):
-    from pkg_resources import EntryPoint
     tries = int(local_conf.get('tries', 3))
     retryable = local_conf.get('retryable')
     highwater = local_conf.get('highwater', 2<<20)
@@ -153,8 +159,7 @@ def make_retry(app, global_conf, **local_conf):
     delay_factor = local_conf.get('delay_factor', 2)
     log_after_try_count = int(local_conf.get('log_after_try_count', 1))
     if retryable is not None:
-        retryable = [EntryPoint.parse('x=%s' % x).resolve()
-                      for x in retryable.split(' ')]
+        retryable = [_quasi_entrypoint(x) for x in retryable.split(' ')]
     return Retry(app, tries, retryable=retryable, highwater=highwater,
                  log_after_try_count=log_after_try_count,
                  delay=delay, delay_factor=delay_factor)
