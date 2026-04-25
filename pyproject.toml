@@ -111,3 +111,14 @@ force-single-line = true
 
 [tool.ruff.lint.flake8-pytest-style]
 parametrize-names-type = "csv"
+
+[tool.check-manifest]
+ignore = [
+    ".gitignore",
+    ".gitattributes",
+    "PKG-INFO",
+    "*.egg-info",
+    "*.egg-info/*",
+    "setup.cfg",
+]
+ignore-default-rules = true

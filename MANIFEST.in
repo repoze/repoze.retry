@@ -1,1 +1,6 @@
+prune .github
+prune docs
 include *.txt
+include *.rst
+include tests/unit/*.py
+include tox.ini
