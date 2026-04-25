@@ -1,7 +1,6 @@
 # repoze retry-on-conflict-error behavior
 import importlib
 import itertools
-import socket
 import traceback
 from io import BytesIO
 from tempfile import TemporaryFile
@@ -27,6 +26,10 @@ try:
 except ImportError:
     class RetryException(Exception):
         pass
+
+class AppMustCallStartResponseBeforeReturning(RuntimeError):
+    def __init__(self):
+        super().__init__("app must call start_response before returning")
 
 class Retry:
     def __init__(self, application, tries, retryable=None, highwater=2<<20,
@@ -90,7 +93,7 @@ class Retry:
                         chunk = original_wsgi_input.read(chunksize)
                         rest = rest - chunksize
                     new_wsgi_input.write(chunk)
-            except (socket.error, IOError):
+            except OSError:
                 # Different wsgi servers will generate either socket.error or
                 # IOError if there is a problem reading POST data from browser.
                 msg = b'Not enough data in request or socket error'
@@ -110,11 +113,11 @@ class Retry:
         while 1:
             try:
                 app_iter = self.application(environ, replace_start_response)
-            except self.retryable as e:
+            except self.retryable:
                 i += 1
                 errors = environ.get('wsgi.errors')
                 if errors is not None and i >= self.log_after_try_count:
-                    errors.write('repoze.retry retrying, count = %s\n' % i)
+                    errors.write(f'repoze.retry retrying, count = {i}\n')
                     traceback.print_exc(None, errors)
                 if i < self.tries:
                     if new_wsgi_input is not None:
@@ -133,14 +136,12 @@ class Retry:
                 else:
                     if hasattr(app_iter, 'close'):
                         app_iter.close()
-                    raise AssertionError('app must call start_response before '
-                                         'returning')
+                    raise AppMustCallStartResponseBeforeReturning()
                 return close_when_done_generator(written, app_iter)
 
 def close_when_done_generator(written, app_iter):
     try:
-        for chunk in itertools.chain(written, app_iter):
-            yield chunk
+        yield from itertools.chain(written, app_iter)
     finally:
         if hasattr(app_iter, 'close'):
             app_iter.close()

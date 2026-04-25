@@ -113,11 +113,16 @@ class RetryTests(unittest.TestCase, CEBase):
             self.assertEqual(retry.retryable, (self.ConflictError,))
 
     def test_conflict_not_raised_start_response_not_called(self):
+        from repoze.retry import AppMustCallStartResponseBeforeReturning
         application = DummyApplication(conflicts=1)
         retry = self._makeOne(application, tries=4,
                               retryable=(self.ConflictError,))
-        self.assertRaises(AssertionError, retry, self._makeEnv(),
-                          _faux_start_response)
+        self.assertRaises(
+            AppMustCallStartResponseBeforeReturning,
+            retry,
+            self._makeEnv(),
+            _faux_start_response,
+        )
 
     def test_conflict_raised_start_response_not_called(self):
         application = DummyApplication(conflicts=5)
