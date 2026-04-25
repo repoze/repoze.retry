@@ -49,7 +49,7 @@ jobs:
     - name: Setup Python
       uses: actions/setup-python@v2
       with:
-        python-version: 3.9
+        python-version: 3.14
 
     - name: Install tox
       run: |
@@ -72,12 +72,7 @@ jobs:
     - name: Setup Python
       uses: actions/setup-python@v2
       with:
-        python-version: "3.12"
-
-    - name: Setup Python
-      uses: actions/setup-python@v2
-      with:
-        python-version: "3.9"
+        python-version: 3.14
 
     - run: pip install tox
-    - run: tox -e py312-cover,w_deps,cover
+    - run: tox -e py314,w_deps,coverage
