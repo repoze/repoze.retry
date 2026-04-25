@@ -627,16 +627,16 @@ class ErrorRaisingStream:
     def read(self, amt):
         raise self.exc()
 
-    def readline(self, amt):
+    def readline(self, amt):  # pragma: NO COVER wsgiref.validator
         raise self.exc()
 
-    def readlines(self, amt):
+    def readlines(self, amt):  # pragma: NO COVER wsgiref.validator
         raise self.exc()
 
-    def __iter__(self):
+    def __iter__(self):  # pragma: NO COVER wsgiref.validator
         return self
 
-    def next(self):
+    def next(self):  # pragma: NO COVER wsgiref.validator
         raise self.exc()
 
 
