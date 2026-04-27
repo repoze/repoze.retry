@@ -42,8 +42,8 @@ classifiers = [
 # import-names = ["repoze.retry"]
 
 [project.urls]
-Repository = "https://github.com/repoze/retry"
-Issues = "https://github.com/repoze/retry/issues"
+Repository = "https://github.com/repoze/repoze.retry"
+Issues = "https://github.com/repoze/repoze.retry/issues"
 Documentation = "https://repozeretry.readthedocs.io/en/stable/index.html"
 Changelog = "https://github.com/repoze/repoze.retry/blob/master/CHANGES.rst"
 
