@@ -50,7 +50,7 @@ jobs:
       with:
         python-version: ${{ matrix.python }}
 
-    - name: Install nox
+    - name: Install tox
       run: |
         python -m pip install --upgrade setuptools pip wheel
         python -m pip install tox
