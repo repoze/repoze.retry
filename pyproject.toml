@@ -7,7 +7,7 @@ where = ["src"]
 
 [project]
 name = "repoze-retry"
-version = "2.2dev0"
+version = "2.2"
 description = "WSGI middleware implementing retryable exceptions"
 readme = {file = "README.rst", content-type = "text/x-rst"}
 requires-python = ">=3.10"

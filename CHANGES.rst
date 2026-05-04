@@ -1,8 +1,12 @@
 ``repoze.retry`` Changelog
 ==========================
 
-2.2 (unreleased)
+2.2 (2026-05-04)
 ----------------
+
+- ci: publish to PyPI on release
+
+  Use 'pypi' environment and Trusted Publisher
 
 - Drop runtime use of ``pkg_resources`` to parse "retryables".
 
