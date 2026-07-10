@@ -225,6 +225,25 @@ def test_conflict_not_raised_start_response_called(mw_factory, wsgi_environ):
     start_response.assert_called_once_with("200 OK", _MINIMAL_HEADERS, None)
 
 
+@pytest.mark.xfail  # "https://github.com/repoze/repoze.retry/issues/2
+def test_conflict_not_raised_start_response_called_at_first_chunk(
+    mw_factory,
+    wsgi_environ,
+):
+    start_response = mock.Mock()
+
+    application = LazyApplication(conflicts=1)
+    retry = mw_factory(
+        application, tries=4, retryable=(retry_module.ConflictError,)
+    )
+
+    result = unwind(retry(wsgi_environ, start_response))
+
+    assert result == [b"hello"]
+    assert application.called == 1
+    start_response.assert_called_once_with('200 OK', _MINIMAL_HEADERS, None)
+
+
 def test_alternate_retryble_exception(
     mw_factory,
     wsgi_environ,
@@ -685,3 +704,21 @@ def unwrap_wsgi_errors(env):
         else:  # pragma: NO COVER
             break
     return errors
+
+
+class LazyApplication(DummyApplication):
+    def __call__(self, environ, start_response):
+        if self.called < self.conflicts:
+            self.called += 1
+            raise self.exception
+        istream = environ.get('wsgi.input')
+        if istream is not None:
+            chunks = []
+            chunk = istream.read(1024)
+            while chunk:
+                chunks.append(chunk)
+                chunk = istream.read(1024)
+            self.wsgi_input = b''.join(chunks)
+        if self.call_start_response:
+            start_response('200 OK', _MINIMAL_HEADERS)
+        yield b'hello'
